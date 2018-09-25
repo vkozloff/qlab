@@ -10,7 +10,7 @@
 # Prepare workspace ------------------------------------------------------------
 
 # Set directory
-setwd("/Users/vkozloff/Documents/qlab/analysis/blast-adults-online")
+setwd("/Users/vkozloff/Documents/qlab/analysis/sl-web-analysis/blast-web-sl")
 # Remove objects in environment
 rm(list=ls())
 
@@ -18,10 +18,9 @@ rm(list=ls())
 #importing files
 # TO DO: Make sure correct # each time for each trial
 total_ssl_trial <- 48
-language_1 = list(1,2,2,2,1,1,2,1,1,2,1,2,1,1,2,2,1,1,2,1,2,2,1,2,2,2,1,2,1,2,1,1)
-language_2 = list(1,1,2,1,1,1,2,2,2,2,1,1,1,2,2,1,2,2,1,1,2,1,2,1,2,1,2,1,1,2,2,2)
+language = list(1,1,2,1,1,1,2,2,2,2,1,1,1,2,2,1,2,2,1,1,2,1,2,1,2,1,2,1,1,2,2,2)
 
-ssl <- read.csv("/Users/vkozloff/Documents/blast_adult_online_data/clean/ssl/ssl.csv")
+ssl <- read.csv("/Users/vkozloff/Documents/blast_adult_web_sl_data/clean/ssl_clean/ssl.csv")
 
 #analysis on RT
 # TO DO: Check this for each SL task for multiple participants. Why some start at different points???
@@ -42,27 +41,38 @@ row_number <- which(fam_block$targ==fam_block$stimulus)
 
 #Extract the response time and trial number when stimulus is the target
 for (i in row_number){
-  # If the RT is greater than 0, subtract 100 and append it to rt
+  # If the RT is greater than 0, subtract 100 and append it to rt. 100 comes from the delay from JSPsych between when the 
+  # trial starts and when the tone plays
+  # TO DO: If ever using this with JSPsych in version 6, no longer the 100 delay
   if (fam_block[i,]$rt > 0){
     rt_col <- append(rt_col,fam_block[i,][,"rt"]-100)
   }
-  # If the RT is less than 0, append it to the RT column
+  # If the RT is less than 0, then they pressed the button in the previous trial
+  # Append it to the RT column
   if (fam_block[i,]$rt < 0){
     rt_col <- append(rt_col,fam_block[i,][,"rt"])
   }
   # Append the trial number and ID
   trial <- append(trial,paste(fam_block[i,][,"trial_index"]))
   id <- append(id,paste(fam_block[i,]$part_id))
-  # If the subject responded to a trial and then subsequently responded to the following trial (with a negative RT)
+  # If the subject missed the target, but responded to the following trial 
+  # (with a negative RT, meaning that they pressed the button before the trial started, 
+  # ie. within the 100 ms before the sound started)
+  # TO DO: Try drawing the trial, when the target and stimulus happened. Write down all the numbers...
   if (fam_block[i+1,][,"rt"]!=-1000 & fam_block[i+1,][,"rt"]<0){
     # Subtract the second lines' RT from 380. Replace the first RT with it.
+    # Each block lasts 480, but take the 100 ms delay off to get to 380
     rt_col[(match(i,row_number))] <- 380-fam_block[i+1,][,"rt"]
   }
-  # If the subject responded to a trial and subsequently responded to the following trial (with a positive RT)
+  # If the subject responded to the following trial
+  # After the following stimulus had been presented (so positive RT)
   if (fam_block[i+1,][,"rt"]!=-1000 & fam_block[i+1,][,"rt"]>0){
     # Add 580 to the second line's RT and replace the first RT with it.
+    # 480 + 100 = 580
     rt_col[(match(i,row_number))] <- 580+fam_block[i+1,][,"rt"]}
   # TO DO: Check that first condition of && is necessary
+  # TO DO: Check && vs. & and their conditions
+  # TO DO: If this is correct, add to all scripts
   if (i>1 && fam_block[i-1,][,"rt"]>0){
     rt_col[(match(i,row_number))] <- 480-fam_block[i-1,][,"rt"]
   }
@@ -71,7 +81,7 @@ for (i in row_number){
 fam_trial <- data.frame(unlist(trial),unlist(rt_col),id)
 colnames(fam_trial) <- c("trial","rt_col","id")
 
-#Re-index the trial number of the response so that it ranges from 1-24 (because there are 24 stimuli in total)
+#Re-index the trial number of the response so that it ranges from 1-24 (because there are 24 stimuli in total for both auditory and visual)
 a<-NULL
 for (i in (unique(fam_trial$id))){a<- append(a,sum(fam_trial$id==i))}
 reindex <- NULL
@@ -79,56 +89,76 @@ for (i in a) {reindex <- append(reindex,rep(1:i,1))}
 
 fam_trial$reindex <- reindex
 
+# These 4 are used to calculate dprime
+# hit rate: hit button when target is present
 hit_rate <- NULL
+# miss rate: didn't hit burron during target
 miss_rate <- NULL
+# when not target, don't press button
 correct_rejection <- NULL
+# When not target, press button
 false_alarm <- NULL
+
 mean_rt <- NULL
 rt_slope <- NULL
-timeline <- c(rep("first half",total_ssl_trial/2),rep("second half",total_ssl_trial/2))
-timeline <- rep(timeline,length(fam_trial$trial)/24)
-# TO DO: What is this?
-# fam_trial$timeline <- timeline
-mean_table <- fam_trial[which(fam_trial$rt_col!=-1 & fam_trial$rt_col<1000 & fam_trial$rt_col>-1000), ] #only accept answers in range of -1000 < x < 1000
+#TO DO: Make sure no "timeline" for any script
+
+#only accept answers in range of -1000 < x < 1000
+# TO DO: Check with Zhenghan that this is still the right #
+# Mean table takes out any time when the participant didn't respond to the target 
+mean_table <- fam_trial[which(fam_trial$rt_col!=-1 & fam_trial$rt_col<1000 & fam_trial$rt_col>-1000), ] 
 
 # TO DO: Fix this
 # exclude people who only have one rt point, so rsslope cannot be computed
 # mean_table <- mean_table[mean_table$id!="msslAG1213",]
 
-
 list_ssl_id <- unique(mean_table$id)
+# Fam block = all the familiarization
+# Fam trial = only when target was presented
+# mean table = only the targets they actually responded to
 
+# TO DO: Make sure nothing missing from the mturk ssl script of An's
 #Extract the mean response time, rt slope, hit rate, miss rat, correct rejection, and false alarm for each participant
 for(id in list_ssl_id){
   mean_rt<-append(mean_rt,round(mean(mean_table$rt_col[mean_table$id==id]),digits=3))
+  # Here we use mean table, because it's when they actually pressed
   rt_slope <-append(rt_slope,round(summary(lm(mean_table$rt_col[mean_table$id==id]~mean_table$reindex[mean_table$id==id]))$coefficient[2,1],digits=3))
   hit_rate<-append(hit_rate,round(sum(!is.na(mean_table$rt_col[mean_table$id==id]))/total_ssl_trial,digits =2))
-  miss_rate<-append(miss_rate,round(sum(fam_trial$rt_col[fam_trial$id==id]==-1)/total_ssl_trial,digits=2))
-  correct_rejection <- append(correct_rejection, round(sum(fam_block$rt[fam_block$part_id==id]==-1 & fam_block$targ[fam_block$part_id==id]!=fam_block$stimulus[fam_block$part_id==id])/264,digits=2)) #264 is the total number of stimuli in the familiarization block
-  false_alarm <- append(false_alarm, round(sum(fam_block$rt[fam_block$part_id==id]!=-1 & fam_block$targ[fam_block$part_id==id]!=fam_block$stimulus[fam_block$part_id==id])/264,digits=2))
+  # -1 means that 
+  # TO DO: Check for each file when it's -1000 and when it's -1
+  # TO DO: Make sure that vsl and lsl follow mturk visual and that ssl and tsl follow mturk auditory
+  # fam trial: stimulus was present. rt of -1000 means didn't press
+  miss_rate<-append(miss_rate,round(sum(fam_trial$rt_col[fam_trial$id==id]==-1000)/total_ssl_trial,digits=2))
+  # -1000 means didn't press
+  # target =/= stimulus
+  correct_rejection <- append(correct_rejection, round(sum(fam_block$rt[fam_block$part_id==id]==-1000 & fam_block$targ[fam_block$part_id==id]!=fam_block$stimulus[fam_block$part_id==id])/264,digits=2)) #264 is the total number of stimuli in the familiarization block
+  false_alarm <- append(false_alarm, round(sum(fam_block$rt[fam_block$part_id==id]!=-1000 & fam_block$targ[fam_block$part_id==id]!=fam_block$stimulus[fam_block$part_id==id])/264,digits=2))
 }
 
 subj_table <- data.frame(list_ssl_id,mean_rt, rt_slope,hit_rate, miss_rate,correct_rejection,false_alarm)
-#dprime<-NULL
-#for (i in seq(from=1,to=length(subj_table$list_ssl_id),by=1)){dprime<-append(dprime,qnorm(subj_table[i,]$hit_rate-0.00000001)-qnorm(subj_table[i,]$false_alarm+0.000000001))} #minus 0.000000001 to avoid perfect hit rate
-#subj_table$dprime <- round(dprime,3)
 
-# TO DO: What is this?
-#lowerbound <- mean(subj_table$rt_slope) - 2.5*sd(subj_table$rt_slope)
-#upperbound <- mean(subj_table$rt_slope) + 2.5*sd(subj_table$rt_slope)
-#subj_table <- subj_table[subj_table$rt_slope>=lowerbound,]
-#subj_table <- subj_table[subj_table$rt_slope<=upperbound,]
+# TO DO: Make sure this still works
+lowerbound <- mean(subj_table$rt_slope) - 2.5*sd(subj_table$rt_slope)
+upperbound <- mean(subj_table$rt_slope) + 2.5*sd(subj_table$rt_slope)
+subj_table <- subj_table[subj_table$rt_slope>=lowerbound,]
+subj_table <- subj_table[subj_table$rt_slope<=upperbound,]
 
 #Extract the testing phase
 #test block
-# TO DO: Make sure these numbers are right for all participants...
-test_block <- ssl[which(ssl$trial_index<=813 & ssl$trial_index>=587),]
+# TO DO: Make sure these numbers are right for all participants... (this varies participant to participant, but won't vary more than 1)
+# Check upper bound from each file from An
+test_block <- ssl[which(ssl$trial_index<=815 & ssl$trial_index>=587),]
 test_block <- test_block[!(test_block$stimulus==""),]
-test_block <- test_block[!(test_block$stimulus=="sound/ssl_instr8.wav"),]
-test_block <- test_block[!(test_block$stimulus=="sound/ssl_instr9.wav"),]
-test_block <- test_block[!(test_block$stimulus=="sound/ssl_instr10.wav"),]
+# TO DO: Make sure these are deleted from each SL activity
+test_block <- test_block[!(test_block$stimulus=="ssl_instr11.wav"),]
+test_block <- test_block[!(test_block$stimulus=="ssl_instr11"),]
+# TO DO: Why lsl instructions in these files?? Check that these are the correct ones
+test_block <- test_block[!(test_block$stimulus=="lsl_instr13.wav"),]
+test_block <- test_block[!(test_block$stimulus=="lsl_instr13"),]
+test_block <- test_block[!(test_block$stimulus=="silence" & test_block$key_press==-1),]
+# TO DO: Figure out how to standardize this. Why did they press 174? Seems like they turned the volume up? Is it ok to just get rid of this trial?
+test_block <- test_block[!(test_block$key_press==174),]
 
-test_block <- test_block[!(test_block$stimulus=="silent" & test_block$key_press==-1),]
 
 ans <- NULL
 keyv <- NULL
@@ -136,6 +166,7 @@ subj <- NULL
 cond<- NULL
 
 #Extract rows in which the participant gives a response
+#row_numberv is just row number for the test block
 row_numberv <- which(test_block$key_press != -1 & test_block$stimulus=="silence")
 for (i in row_numberv){
   ans<-append(ans,test_block[i,]$key_press)
@@ -147,16 +178,18 @@ for (i in row_numberv){
 ssl_accuracy <- data.frame(ans,subj,cond)
 ssl_cond <- NULL
 
+#For whatever reason, this gives 22 (not 20). Check it.
 for (i in seq(from=1,to=length(ssl_accuracy$cond),by=32)){ssl_cond<-append(ssl_cond,as.character(ssl_accuracy[i,]$cond))}
 
 keyv<- NULL
 
-# Combine the answer keys for the two language conditions that the participant saw
-for(cond in ssl_cond){
-  # TO DO: Double check that this is relevant
-  if (cond=="lang1"){keyv<-append(keyv,language_1)}
-  else if (cond=="lang2"){keyv<-append(keyv,language_2)}}
+#TO DO: Why is there one missing??
+ssl_cond[22]<-"lang2"
 
+i=0
+
+# Combine the answer keys for the two language conditions that the participant saw
+keyv <- rep(language, times = length(unique(ssl_accuracy$subj)))
 
 # Find all of the IDs for the participants whose accuracy you're calculating
 acc_id <- unique(ssl_accuracy$subj)
@@ -165,6 +198,7 @@ acc_id <- unique(ssl_accuracy$subj)
 ssl_accuracy$key <- keyv
 
 #Substitute the key press (37,39) with the answer (1,2)
+# TO DO: Check TSL. Here this is correct!
 ssl_accuracy$ans <- gsub(37,1,ssl_accuracy$ans)
 ssl_accuracy$ans <- gsub(39,2,ssl_accuracy$ans)
 
@@ -175,5 +209,5 @@ for (i in seq(from=1,to=length(ssl_accuracy$ans),by=1)) {corr<-append(corr,as.nu
 ssl_accuracy$corr <- corr
 subj_corr <- NULL
 for (id in acc_id) {subj_corr <- append(subj_corr,round(sum(ssl_accuracy$corr[ssl_accuracy$subj==id])/32,digits=3))}
-ssl_acc_table <- data.frame(acc_id,subj_corr,ssl_cond)
+ssl_acc_table <- data.frame(acc_id,subj_corr)
 

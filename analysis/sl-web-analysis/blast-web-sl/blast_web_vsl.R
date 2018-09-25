@@ -1,4 +1,4 @@
-#  BLAST TSL Analysis
+#  BLAST VSL Analysis
 #  Violet Kozloff
 #  September 10th, 2018 
 #  Adapted from mturk_vsl by An Nguyen
@@ -10,7 +10,7 @@
 # Prepare workspace ------------------------------------------------------------
 
 # Set directory
-setwd("/Users/vkozloff/Documents/qlab/analysis/blast-adults-online")
+setwd("/Users/vkozloff/Documents/qlab/analysis/sl-web-analysis/blast-web-sl")
 # Remove objects in environment
 rm(list=ls())
 
@@ -20,9 +20,11 @@ total_vsl_trial <- 24
 language_1 = list(1,2,2,2,1,1,2,1,1,2,1,2,1,1,2,2,1,1,2,1,2,2,1,2,2,2,1,2,1,2,1,1)
 language_2 = list(1,1,2,1,1,1,2,2,2,2,1,1,1,2,2,1,2,2,1,1,2,1,2,1,2,1,2,1,1,2,2,2)
 
-vsl <- read.csv("/Users/vkozloff/Documents/blast_adult_online_data/clean/vsl/vsl.csv")
+vsl <- read.csv("../../../../blast_adult_web_sl_data/clean/vsl_clean/vsl.csv")
 
 #analysis on RT
+# Numbers might change file to file. May have an extra blank stimulus before it.
+# TO DO: Check that these chunks are generally correct
 fam_block <- vsl[which(vsl$trial_index<=300 & vsl$trial_index>=13),]
 fam_block <- fam_block[!(fam_block$stimulus=="../../vsl_audio/sound_instruct/vsl_instr7.wav"),]
 fam_block$targ <- paste(fam_block$targ)

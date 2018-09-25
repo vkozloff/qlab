@@ -1,21 +1,18 @@
 #  BLAST Online Session Data Cleaning
 #  Violet Kozloff
 #  September 10th, 2018 
-#  Adapted from lsl_clean_file and mturk_combine_raw by An Nguyen
+#  Adapted from lsl_rt_clean_file and mturk_combine_raw by An Nguyen
 #  This script cleans LSL, SSL, TSL, and VSL files from the online session of the BLAST experiment
 #  NOTE: Before running, make sure all files contain "responses" column (may need to be added manually)
-
-# TO DO: Clean LSL
-# TO DO: Test VSL for 2 files and see what happens
-# TO DO: Make sure it works with multiple TSL, SSL, VSL
-# TO DO: Make sure it can accept the weird files with no "responses" column
+#  TO DO: Make sure it can accept the weird files with no "responses" column
 #  ****************************************************************************
 
+# TO DO: Add "responses" column wherever necessary and make sure it has the new blast_a_024 data
 
 # Prepare workspace ------------------------------------------------------------
 
 # Set directory
-setwd("/Users/vkozloff/Documents/qlab/analysis/blast-adults-online")
+setwd("/Users/vkozloff/Documents/qlab/analysis/sl-web-analysis/blast-web-sl")
 # Remove objects in environment
 rm(list=ls())
 
@@ -23,16 +20,19 @@ rm(list=ls())
 # Prepare files ------------------------------------------------------------
 
 # Set up input paths
-lsl_input <- ("../../../blast_adult_online_data/original/lsl/")
-ssl_input <- ("../../../blast_adult_online_data/original/ssl/")
-tsl_input <- ("../../../blast_adult_online_data/original/tsl/")
-vsl_input <- ("../../../blast_adult_online_data/original/vsl/")
+lsl_input <- ("../../../../blast_adult_web_sl_data/original/lsl_original/")
+ssl_input <- ("../../../../blast_adult_web_sl_data/original/ssl_original/")
+tsl_input <- ("../../../../blast_adult_web_sl_data/original/tsl_original/")
+vsl_input <- ("../../../../blast_adult_web_sl_data/original/vsl_original/")
+
 
 # Set up output paths
-lsl_output <- ("../../../blast_adult_online_data/clean/lsl/")
-ssl_output <- ("../../../blast_adult_online_data/clean/ssl/")
-tsl_output <- ("../../../blast_adult_online_data/clean/tsl/")
-vsl_output <- ("../../../blast_adult_online_data/clean/vsl/")
+lsl_rt_output <- ("../../../../blast_adult_web_sl_data/clean/lsl_rt_clean/")
+lsl_acc_output <- ("../../../../blast_adult_web_sl_data/clean/lsl_acc_clean/")
+ssl_output <- ("../../../../blast_adult_web_sl_data/clean/ssl_clean/")
+tsl_output <- ("../../../../blast_adult_web_sl_data/clean/tsl_clean/")
+vsl_output <- ("../../../../blast_adult_web_sl_data/clean/vsl_clean/")
+
 
 # List files in input paths
 lsl_original_files <- list.files(path=lsl_input, pattern="*.csv") 
@@ -53,7 +53,7 @@ tsl_clean <- function(file) {
   this_file["responses"] <- lapply(this_file["responses"], as.character)
   part_id <- substr(as.character(this_file["responses"[1]]), 14, 24)
   newdata$part_id <- part_id
-  # Write clean file
+  # Write file
   this_path<-file.path(tsl_output, basename(file))
   write.csv(newdata, file=(this_path))
 }
@@ -83,7 +83,8 @@ tsl$stimulus<- gsub(".wav","",tsl$stimulus)
 tsl$stimulus<- gsub("../../tones/","",tsl$stimulus)
 
 
-write.csv(tsl,"../../../blast_adult_online_data/clean/tsl/tsl.csv")
+write.csv(tsl,"../../../../blast_adult_web_sl_data/clean/tsl_clean/tsl.csv")
+
 
 # Clean ssl files ———————————————————————————————————
 
@@ -98,9 +99,15 @@ ssl_clean <- function(file) {
   this_file["responses"] <- lapply(this_file["responses"], as.character)
   part_id <- substr(as.character(this_file["responses"[1]]), 14, 24)
   newdata$part_id <- part_id
-  # Write clean file
+  # Write file
   this_path<-file.path(ssl_output, basename(file))
   write.csv(newdata, file=(this_path))
+}
+
+# Apply function to all ssl files
+for (file in ssl_original_files)
+{
+  ssl_clean(paste0(ssl_input,file))
 }
 
 # Apply function to all ssl files
@@ -127,7 +134,7 @@ ssl <- do.call(rbind.data.frame, ssl)
 ssl$stimulus<- gsub(".wav","",ssl$stimulus)
 ssl$stimulus<- gsub("sound/","",ssl$stimulus)
 
-write.csv(ssl,"../../../blast_adult_online_data/clean/ssl/ssl.csv")
+write.csv(ssl,"../../../../blast_adult_web_sl_data/clean/ssl_clean/ssl.csv")
 
 
 # Clean vsl files ———————————————————————————————————
@@ -143,7 +150,7 @@ vsl_clean <- function(file) {
   this_file["responses"] <- lapply(this_file["responses"], as.character)
   part_id <- substr(as.character(this_file["responses"[1]]), 14, 24)
   newdata$part_id <- part_id
-  # Write clean file
+  # Write file
   this_path<-file.path(vsl_output, basename(file))
   write.csv(newdata, file=(this_path))
 }
@@ -157,7 +164,6 @@ for (file in vsl_original_files)
 # Create one file with all vsl information
 vsl <- list()
 vsl_clean_files <- list.files(path=vsl_output, pattern="*.csv") 
-
 for(file in vsl_clean_files)
 {
   assign(
@@ -173,141 +179,215 @@ vsl <- do.call(rbind.data.frame, vsl)
 vsl$stimulus<- gsub(".jpg","",vsl$stimulus)
 vsl$stimulus<- gsub(".png","",vsl$stimulus)
 vsl$stimulus<- gsub("../../images/","",vsl$stimulus)
+# TO DO: Make sure this is the case for all
+vsl$stimulus<- tolower(vsl$stimulus)
 
-write.csv(vsl,"../../../blast_adult_online_data/clean/vsl/vsl.csv")
-
-
-
-# Clean lsl files ———————————————————————————————————
-
-# Set up input paths
-#lsl_input 
-path <- ("../../../blast_adult_online_data/original/lsl/")
-# path <- "C:/Users/Qlab/Downloads/sayako/lsl/"
-
-# Set up output paths
-lsl_output <- ("../../../blast_adult_online_data/clean/lsl/")
-
-# List files in input paths
-#lsl_original_files
-#files <- list.files(path=lsl_input, pattern="*.csv") 
-files <- list.files(path=path, pattern="*.csv") 
-
-file <- ("Documents/blast_adult_online_data/clean/lsl/blast_a_001.lsl")
+write.csv(vsl,"../../../../blast_adult_web_sl_data/clean/vsl_clean/vsl.csv")
 
 
-# files <- list.files(path=path, pattern="*.csv") 
+# Clean lsl files for accuracy ———————————————————————————————————
 
 # Create a new file containing only the relevant columns in the output folder
 lsl_clean <- function(file) {
+    # Read files
+  this_file <- read.csv(file)
  
-   # From An's lsl_clean_file script  
-  
-  #Since LSL uses animation plug-in from jsPsych to make sure the present rate is smooth, the data layout is a bit different. This script is to extract the response time for LSL tasks. 
-  # Extract 2 things: response time in "responses" and animation_sequence
-  cleandata <- function(file) {
-    
-    lsl <- read.csv(file)
-    #  extract the responses
-    if(lsl[10,2]!=""){rep <- unlist(strsplit(paste(lsl[10,2]), split=',', fixed=TRUE))
-    } else {
-      # Separates into keypress, rt, and stimulus
-      rep <- unlist(strsplit(paste(lsl[9,2]), split=',', fixed=TRUE))
-    }
-    #extract animation
-    # TO DO: Make sure it's really here
-    if(lsl[10,11]!=""){
-      # Splits stimulus from time: the whole animation sequence that they saw (as an array)
-      ani_stim <- unlist(strsplit(paste(lsl[10,11]), split=',', fixed=TRUE))
-    } else{
-      ani_stim <- unlist(strsplit(paste(lsl[9,12]), split=',', fixed=TRUE))
-    }
-    
-    key= NULL
-    rt  <- NULL
-    stim_press <- NULL
-    stim_disp <- NULL
-    time <- NULL
-    
-    # Takes the cell in "responses" and splits it based on colon so that it is separate into keypress, rt, and stimulus
-    for (j in seq(from=2, to=length(rep), by=3)) {
-      # Just extracts RT from "rep", which has kepyrss, rt, and stimulus for each stimulus
-      rt<- append(rt,as.numeric(unlist(strsplit(paste(rep[j]), split=':'))[2]))
-    }
-    
-    
-    for (k in seq(from=3, to=length(rep), by=3)) {
-      # stim_press is all the stimuli where the participant responded
-      stim_press<- append(stim_press, gsub('.{2}$','',unlist(strsplit(paste(rep[k]), split=':\"', fixed=TRUE))[2]))
-      
-    }
-    
-    for (i in seq(from=1, to=length(ani_stim), by=2)) {
-      # Create a column of the stimuli that occurred during lsl exposure. Changes ani_stim from array to column.
-      stim_disp<- rbind(stim_disp, gsub('.{1}$','',unlist(strsplit(paste(ani_stim[i]), split=':\"', fixed=TRUE))[2]))}
-    
-    # Extract the time from the ani_stim
-    for (n in seq(from=2, to=length(ani_stim), by=2)) {
-      time<- rbind(time, gsub('.{1}$','',unlist(strsplit(paste(ani_stim[n]), split=':', fixed=TRUE))[2]))}
-    
-    # these 2 tables are not the same length. 
-    #Table 1 has all reaction times to all stimulus they responded to
-    table1 <- data.frame(rt,stim_press)
-    
-    #Table 2 has info from animation sequence — when each stimulus was presented
-    table2<-data.frame(stim_disp,time)
-    
-    # Trying to fit table 1 into table 2 depending on reaction time
-    table2 <- table2[1:576,]
-    # Col2 is stimpres from table 1
-    table2$col2 <- "NA"
-    #col1 signifies reaction time from table 1
-    table2$col1 <- "NA"
-    table1$stim_press <- paste(table1$stim_press)
-    
-    # stim_disp is the stimulus that was seen during the animation sequence
-    table2$stim_disp <- paste(table2$stim_disp)
-    table2$time <- as.numeric(paste(table2$time))
-    for (i in seq(from=1,to =length(table1$stim_press),by=1)) {
-      temp1 <- table1[i,]
-      index <- 0
-      min <- .Machine$integer.max
-      
-      
-      # Difference between time and rt: time is when it appeared, rt is when they responded
-      # If they press during blank, subtract the blank RT from the time the previous stimulus appeared
-      # Always compare to when the target was appeared. If they respond during H, subtract the H rt 
-      
-      for  (j in seq(from=1,to =length(table2$stim_disp),by=1)) {
-        temp2 <- table2[j,]
-        if (temp2[3]=="NA") {
-          if (temp1[2]==temp2[1]){
-            if (abs(temp1[1]-temp2[2]) < min){
-              min <- abs(temp2[2]-temp1[1])
-              index <- j}
-          }
-        }
-      }
-      table2$col1[index] <- temp1[1]
-      table2$col2[index] <- temp1[2]}
-    table2$target <- lsl$targ[1]
-    table2$cond <- lsl$cond[1]
-    table2$par_id <- rep(gsub('.{2}$','',unlist(strsplit(paste(lsl$response[1]), split=':"', fixed=TRUE))[2]),length(lsl$responses[1]))
-    table2<-as.matrix(table2)
-    write.csv(table2,file=as.character(file))
-  }
-  
-  
-  }
-
-# Apply function to all lsl files
-for (file in files)
-{
-  lsl_clean(paste0(path,file))
+   # Select relevant columns
+  value <- c("rt", "trial_index","cond","targ","key_press","stimulus")
+  newdata <- this_file[value]  
+  # TO DO: Check that this is relevant for all files, but for 006 it looks like we only need to consider lines 16 on
+  newdata<-newdata[which(newdata$trial_index>15),]
+    # Create a column populated with the participant ID
+  this_file["responses"] <- lapply(this_file["responses"], as.character)
+  part_id <- substr(as.character(this_file["responses"[1]]), 14, 24)
+  newdata$part_id <- part_id
+  # Write file
+  this_path<-file.path(lsl_acc_output, basename(file))
+  write.csv(newdata, file=(this_path))
 }
 
+# Apply function to all lsl files
+for (file in lsl_original_files)
+{
+  lsl_clean(paste0(lsl_input,file))
+}
 
-# List files in output paths
-lsl_clean_files <- list.files(path=lsl_output, pattern="*.csv") 
+# Create one file with all lsl information
+lsl_acc <- list()
+lsl_clean_files <- list.files(path=lsl_acc_output, pattern="*.csv") 
+for(file in lsl_clean_files)
+{
+  assign(
+    gsub(" ","",file), 
+    read.csv(paste(lsl_acc_output,file,sep="")))
+}
+
+for(file in lsl_clean_files){lsl_acc <- append(lsl_acc,list(eval(parse(text=file))))}
+
+lsl_acc <- do.call(rbind.data.frame, lsl_acc)
+
+# Standardize stimulus names
+lsl_acc$stimulus<- gsub(".png","",lsl_acc$stimulus)
+lsl_acc$stimulus<- gsub("image/image/","",lsl_acc$stimulus)
+lsl_acc$stimulus<- gsub("image/","",lsl_acc$stimulus)
+# TO DO: Make sure this is the case for all
+lsl_acc$stimulus<- tolower(lsl_acc$stimulus)
+lsl_acc$targ<- tolower(lsl_acc$targ)
+
+write.csv(lsl_acc,"../../../../blast_adult_web_sl_data/clean/lsl_acc_clean/lsl_acc.csv")
 
 
+# Clean lsl files for reaction time———————————————————————————————————
+
+# Create a new file containing only the relevant columns in the output folder
+lsl_rt_clean <- function(file) {
+
+  #test
+  this_file <- read.csv("../../../../blast_adult_web_sl_data/original/lsl_original/blast_a_006_lsl.csv")
+  
+    # Read current file
+  this_file <- read.csv(file)
+  # If the responses column is column 11
+  if(this_file[1,11]!=""){
+    # Separates the responses into keypress, rt, and stimulus; puts this all into "rep"
+    rep <- unlist(strsplit(paste(this_file[9,11]), split=',', fixed=TRUE))
+  # Otherwise the reponses are in column 2
+  } else {
+    # Separates the responses into keypress, rt, and stimulus; puts this all into "rep"
+    rep <- unlist(strsplit(paste(this_file[10,2]), split=',', fixed=TRUE))
+  }
+  
+  #extract animation
+  # If the responses column is column 11
+  if(this_file[1,11]!=""){
+    # ani_stim splits the stimulus from the time it was presented.
+    # Is shows the whole animation sequence that the participant saw (as an array)
+    ani_stim <- unlist(strsplit(paste(this_file[9,10]), split=',', fixed=TRUE))
+  # Otherwise the animation_sequence is in column 11
+  } else{
+    ani_stim <- unlist(strsplit(paste(this_file[10,11]), split=',', fixed=TRUE))
+  }
+  
+  key= NULL
+  rt  <- NULL
+  stim_press <- NULL
+  stim_disp <- NULL
+  time <- NULL
+  
+  # Takes the cell in "responses" and splits it based on colon
+  # the cell in "responses" is separated into keypress, rt, and stimulus
+  for (j in seq(from=2, to=length(rep), by=3)) {
+    # Extracts rt from "rep"
+    rt<- append(rt,as.numeric(unlist(strsplit(paste(rep[j]), split=':'))[2]))
+  }
+  
+  for (k in seq(from=3, to=length(rep), by=3)) {
+    # stim_press contains all the stimuli where the participant responded
+    stim_press<- append(stim_press, gsub('.{2}$','',unlist(strsplit(paste(rep[k]), split=':\"', fixed=TRUE))[2]))
+  }
+  
+  for (i in seq(from=1, to=length(ani_stim), by=2)) {
+    # Create a column for all of the stimuli that occurred during this_file exposure
+    # Changes ani_stim from an array to a column.
+    stim_disp<- rbind(stim_disp, gsub('.{1}$','',unlist(strsplit(paste(ani_stim[i]), split=':\"', fixed=TRUE))[2]))}
+  
+  # Extract the time from the ani_stim
+  for (n in seq(from=2, to=length(ani_stim), by=2)) {
+    time<- rbind(time, gsub('.{1}$','',unlist(strsplit(paste(ani_stim[n]), split=':', fixed=TRUE))[2]))}
+  
+  #These 2 tables are not the same length. 
+  #Table 1 has all reaction times to all stimuli they responded to
+  table1 <- data.frame(rt,stim_press)
+  # Get rid of the extra " at the end of the final row
+  table1$stim_press <- gsub('"',"",table1$stim_press)
+  
+  
+  #Table 2 has info from the animation sequence, ie. when each stimulus was presented
+  table2 <- data.frame(stim_disp,time)
+  # Get rid of the extra } at the end of the final row
+  table2$time <- gsub('}',"",table2$time)
+  
+  
+  # Fits table 1 into table 2, depending on reaction time
+  
+  # Take out blank image
+  # TO DO: Maybe test for one other example of case 1?    
+  table2 <- table2[1:576,]
+  
+  table2$targ <- this_file$targ[1]
+  
+  # Col2 is stimpres from table 1
+  table2$col2 <- "NA"
+  #col1 signifies reaction time from table 1
+  table2$col1 <- "NA"
+  table1$stim_press <- paste(table1$stim_press)
+  
+  # stim_disp is the stimulus that was seen during the animation sequence
+  table2$stim_disp <- paste(table2$stim_disp)
+  table2$time <- as.numeric(paste(table2$time))
+  for (i in seq(from=1,to =length(table1$stim_press),by=1)) {
+    temp1 <- table1[i,]
+    index <- 0
+    min <- .Machine$integer.max
+    
+    
+    # Difference between time and rt: time is when it appeared, rt is when they responded
+    # If they press during blank, subtract the blank RT from the time the previous stimulus appeared
+    # Always compare to when the target was appeared. If they respond during H, subtract the H rt 
+    
+    for  (j in seq(from=1,to =length(table2$stim_disp),by=1)) {
+      temp2 <- table2[j,]
+      if (temp2[3]=="NA") {
+        if (temp1[2]==temp2[1]){
+          if (abs(temp1[1]-temp2[2]) < min){
+            min <- abs(temp2[2]-temp1[1])
+            index <- j}
+        }
+      }
+    }
+    table2$col1[index] <- temp1[1]
+    table2$col2[index] <- temp1[2]}
+  
+  
+  table2$targ <- table2$targ[1]
+  responses <- (this_file["responses"])
+  full_id <- responses[1,1]
+  id_char <-as.character(full_id)
+  part_id <- substr(id_char, 8, 18)
+  table2$part_id <- part_id
+  table2$col1<-as.character(table2$col1)
+  table2$col2<-as.character(table2$col2)
+  # Write file
+  this_path<-file.path(lsl_output, basename(file))
+  write.csv(table2, file=(this_path))
+}
+
+# Apply function to all lsl files
+for (file in lsl_original_files)
+{
+  lsl_rt_clean(paste0(lsl_input,file))
+}
+
+# Create one file with all lsl information
+lsl <- list()
+lsl_rt_clean_files <- list.files(path=lsl_output, pattern="*.csv") 
+for(file in lsl_rt_clean_files)
+{
+  assign(
+    gsub(" ","",file), 
+    read.csv(paste(lsl_output,file,sep="")))
+}
+
+for(file in lsl_rt_clean_files){lsl <- append(lsl,list(eval(parse(text=file))))}
+
+lsl <- do.call(rbind.data.frame, lsl)
+
+# Standardize stimulus names
+lsl$stimulus<-lsl$stim_disp
+lsl$stimulus<- gsub(".png","",lsl$stimulus)
+lsl$stimulus<- gsub("image/","",lsl$stimulus)
+# TO DO: Make sure this is the case for all
+lsl$stimulus<- tolower(lsl$stimulus)
+lsl$targ<- tolower(lsl$targ)
+
+write.csv(lsl,"../../../../blast_adult_web_sl_data/clean/lsl_rt_clean/lsl_rt.csv")

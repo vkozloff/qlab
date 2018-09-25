@@ -10,7 +10,7 @@
 # Prepare workspace ------------------------------------------------------------
 
 # Set directory
-setwd("/Users/vkozloff/Documents/qlab/analysis/blast-adults-online")
+setwd("/Users/vkozloff/Documents/qlab/analysis/sl-web-analysis/blast-web-sl")
 # Remove objects in environment
 rm(list=ls())
 
@@ -20,7 +20,7 @@ total_tsl_trial <- 24
 language_1 = list(1,2,2,2,1,1,2,1,1,2,1,2,1,1,2,2,1,1,2,1,2,2,1,2,2,2,1,2,1,2,1,1)
 language_2 = list(1,1,2,1,1,1,2,2,2,2,1,1,1,2,2,1,2,2,1,1,2,1,2,1,2,1,2,1,1,2,2,2)
 
-tsl <- read.csv("/Users/vkozloff/Documents/blast_adult_online_data/clean/tsl/tsl.csv")
+tsl <- read.csv("/Users/vkozloff/Documents/blast_adult_web_sl_data/clean/tsl_clean/tsl.csv")
 
 #analysis on RT
 fam_block <- tsl[which(tsl$trial_index<=600 & tsl$trial_index>=24),]
