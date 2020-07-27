@@ -1,7 +1,7 @@
 #  SIT ACCURACY EXTRACTION
 #  Violet Kozloff
 #  Adapted from analysis scripts by An Nguyen
-#  Last modified January 7th, 2020
+#  Last modified July 24th, 2020 by Violet Kozloff
 #  This script finds two-alternative forced-choice task accuracies for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  ****************************************************************************
@@ -17,9 +17,11 @@
 # install.packages("reshape")
 # install.packages("tidyverse")
 # install.packages("corrplot")
-# install.packages("lmerTest")
+# install.packages("lme4")
+# install.packages("optimx")
 
-require ("lmerTest")
+
+require ("lme4")
 require ("plyr")
 require("reshape")
 require("corrplot")
@@ -29,12 +31,20 @@ require("tidyverse")
 rm(list=ls())
 
 # Read in picture vocabulary scores --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
+# For Mac
+#picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
 
+# For PC
+picture_vocab <- read.csv("Z:/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
 
 # Read in ll files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+# For Mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+
+#For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+
 ll_files <- list.files(pattern=("*.csv"))
 ll_data <- NULL
 
@@ -46,7 +56,12 @@ for (file in ll_files)
 
 # Read in lv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+# For Mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+# For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+
+
 lv_files <- list.files(pattern=("*.csv"))
 lv_data <- NULL
 
@@ -58,7 +73,10 @@ for (file in lv_files)
 
 # Read in vl files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean")
+# For Mac
+#setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean")
+#For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vl_clean")
 vl_files <- list.files(pattern=("*.csv"))
 vl_data <- NULL
 
@@ -71,7 +89,11 @@ for (file in vl_files)
 
 # Read in vv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+# For Mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+# For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+
 vv_files <- list.files(pattern=("*.csv"))
 vv_data <- NULL
 
@@ -327,7 +349,7 @@ for(id in list_part_id){
 # Combine data for each participant
 indiv_vv_accuracies <- data.frame(part_id, task, same_or_diff, test_phase, accuracy)
 
-# TEST: There should be 32 entries 
+# TEST: There should be 32 entries, but one participant didn't do the vv task so there are only 31 for this set
 length(indiv_vv_accuracies$part_id)
 
 # TEST: All entries should all have an accuracy value
@@ -335,7 +357,7 @@ View(indiv_vv_accuracies)
 
 
 # Trial-by-trial analysis  ------------------------------------------------------------------------------------------------
-# Mixed-effects logistic regression: The dependent measure was whether the participant made a correct or incorrect response. 
+# Generalized linear mixed-effects model: The dependent measure was whether the participant made a correct or incorrect response. 
 
 # Combine all tasks into one
 lmer_data <- rbind(vl_data, ll_data, lv_data, vv_data)
@@ -343,9 +365,48 @@ lmer_data <- rbind(vl_data, ll_data, lv_data, vv_data)
 lmer_data$group <- if_else(lmer_data$exp_name=="ll" | lmer_data$exp_name=="vv", "same", "different", missing = NULL)
 lmer_data$stimulus_type <- if_else(lmer_data$exp_name=="ll" | lmer_data$exp_name=="lv", "letter", "image", missing = NULL)
 
+# Separate groups
+same_lmer_data <- filter(lmer_data, group == "same")
+diff_lmer_data <- filter(lmer_data, group == "different")
 
 
-acc_lmer <- glmer(corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type|part_id) + (1| trial), family = binomial, data = lmer_data)
+# Both groups
+
+# Maximal model
+# This model fails to converge
+item_acc.full <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id) + (1 + group | trial), family = "binomial", data = lmer_data)
+
+# Increase number of iterations
+item_acc.mod1 <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id) + (1 + group | trial), family = "binomial", data = lmer_data, control = glmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
+summary(item_acc.mod1)
+
+# There was a perfect correlation between the random slope for group and random intercept for trial
+# The below model removes it
+item_acc.mod2 <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id) + (0 + group | trial) + (1 | trial), family = "binomial", data = lmer_data, control = glmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
+summary(item_acc.mod2)
+
+
+
+
+
+
+
+
+
+
+
+
+# Individual item-level accuracy, both groups included
+item_acc_lmer <- glmer(corr_resp ~ 1 + group * stimulus_type + (1|part_id) + (0 + stimulus_type*group|part_id) + (1| trial), family = binomial, data = lmer_data,control = glmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
+
+
+# Individual item-level accuracy, same group only
+same_item_lmer <- glmer(corr_resp ~ 1 + stimulus_type + (1|part_id) + (0 + domain*stimulus_type|part_id) + (1| trial), family = binomial, data = same_lmer_data,control = glmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
+# Individual item-level accuracy, different group only
+diff_item_lmer <- glmer(corr_resp ~ 1 + stimulus_type + (1|part_id) + (0 + domain*type*stimulus_type|part_id) + (1| trial), family = binomial, data = diff_lmer_data,control = glmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
+
+
+
 
 
 # Summarize individual accuracies  ------------------------------------------------------------------------------------------------

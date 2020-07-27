@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified January 22nd, 2020
+#  Last modified July 24th, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -18,27 +18,30 @@
 require("reshape")
 require("plyr")
 require("corrplot")
-
-# Set working directory
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/")
+require("here")
 
 # Remove objects in environment
 rm(list=ls())
 
 # Read in picture vocabulary scores --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
+picture_vocab <- read.csv(here("../data/clean/vocab_clean/vocab_clean.csv"))
 
 
 # Read in ll files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+# For mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+
+#For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+
 ll_files <- list.files(pattern=("*.csv"))
 ll_data <- NULL
 
 for (file in ll_files)
 {
   current_file <- read.csv(file)
-  ll_data <- rbind.fill (ll_data, current_file)
+  ll_data <- plyr::rbind.fill (ll_data, current_file)
 }
 
 # Read "f_not_false" as "F"
@@ -58,15 +61,19 @@ ll_data$structured_targ <- gsub (".bmp", "", ll_data$structured_targ, ignore.cas
 
 
 # Read in lv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
+# For mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean")
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+# For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+
 lv_files <- list.files(pattern=("*.csv"))
 lv_data <- NULL
 
 for (file in lv_files)
 {
   current_file <- read.csv(file)
-  lv_data <- rbind.fill (lv_data, current_file)
+  lv_data <- plyr::rbind.fill (lv_data, current_file)
 }
 
 # Read "f_not_false" as "F"
@@ -88,14 +95,19 @@ lv_data$structured_targ <- gsub (".bmp", "", lv_data$structured_targ, ignore.cas
 
 # Read in vl files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean")
+# For Mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean")
+
+# For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vl_clean")
+
 vl_files <- list.files(pattern=("*.csv"))
 vl_data <- NULL
 
 for (file in vl_files)
 {
   current_file <- read.csv(file)
-  vl_data <- rbind.fill (vl_data, current_file)
+  vl_data <- plyr::rbind.fill (vl_data, current_file)
 }
 
 # Read "f_not_false" as "F"
@@ -117,14 +129,19 @@ vl_data$structured_targ <- gsub (".bmp", "", vl_data$structured_targ, ignore.cas
 
 # Read in vv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+# For Mac
+# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+
+# For PC
+setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+
 vv_files <- list.files(pattern=("*.csv"))
 vv_data <- NULL
 
 for (file in vv_files)
 {
   current_file <- read.csv(file)
-  vv_data <- rbind.fill (vv_data, current_file)
+  vv_data <- plyr::rbind.fill (vv_data, current_file)
 }
 
 # Convert response times to milliseconds
@@ -1908,7 +1925,7 @@ mean_rand_rt <- append(mean_rand_rt, round(mean(indiv_rt_slope[ which(indiv_rt_s
                                                                       & indiv_rt_slope$task== "vv"), ]$mean_rt), digits =3))
 
 
-# Combine group accuracies into one data frame
+# Combine group rt data into one data frame
 group_rt_slope <- data.frame(cbind(task, mean_rand_rt_slope, mean_struct_rt_slope, mean_struct_rt, mean_rand_rt))
 
 # Write rt slope data into a file
@@ -1962,5 +1979,8 @@ indiv_rt_points <- data.frame(rbind(random_ll_points, random_lv_points, random_v
 indiv_rt_points <- dplyr::rename(indiv_rt_points, rt = target_rt)
 indiv_rt_points <- dplyr::rename(indiv_rt_points, part_id = id)
 
-write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+# For mac
+# write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
 
+# For PC
+write.csv(indiv_rt_points, here("../summaries/indiv_rts.csv"))
