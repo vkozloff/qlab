@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified July 24th, 2020
+#  Last modified Sept 8, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -11,29 +11,47 @@
 
 # Prepare workspace ------------------------------------------------------------------------------------------------------
 
-# Install packages
-# install.packages("reshape")
-# install.packages("plyr")
-# install.packages("corrplot")
-require("reshape")
-require("plyr")
-require("corrplot")
-require("here")
+
+#Install packages if they aren't already installed
+if (!("reshape" %in% installed.packages())) install.packages("reshape")
+if (!("tidyverse" %in% installed.packages())) install.packages("tidyverse")
+if (!("corrplot" %in% installed.packages())) install.packages("corrplot")
+if (!("here" %in% installed.packages())) install.packages("here")
+
+require(reshape)
+require(tidyverse)
+require(corrplot)
+require(here)
 
 # Remove objects in environment
 rm(list=ls())
 
+# Detect OS
+get_os <- function(){
+  sysinf <- Sys.info()
+  if (!is.null(sysinf)){
+    os <- sysinf['sysname']
+    if (os == 'Darwin')
+      os <- "osx"
+  } else { ## mystery machine
+    os <- .Platform$OS.type
+    if (grepl("^darwin", R.version$os))
+      os <- "osx"
+    if (grepl("linux-gnu", R.version$os))
+      os <- "linux"
+  }
+  tolower(os)
+}
+
+os <- get_os()
+
 # Read in picture vocabulary scores --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 picture_vocab <- read.csv(here("../data/clean/vocab_clean/vocab_clean.csv"))
 
-
 # Read in ll files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-# For mac
-# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean")
-
-#For PC
-setwd("Z:/projects/completed_projects/sit/analysis/data/clean/ll_clean")
+# Set directory based on OS
+ifelse (os == "osx", setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/ll_clean"), setwd("Z:/projects/completed_projects/sit/analysis/data/clean/ll_clean"))
 
 ll_files <- list.files(pattern=("*.csv"))
 ll_data <- NULL
@@ -61,11 +79,9 @@ ll_data$structured_targ <- gsub (".bmp", "", ll_data$structured_targ, ignore.cas
 
 
 # Read in lv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
-# For mac
-# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean")
 
-# For PC
-setwd("Z:/projects/completed_projects/sit/analysis/data/clean/lv_clean")
+# Set directory based on OS
+ifelse (os == "osx", setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/lv_clean"), setwd("Z:/projects/completed_projects/sit/analysis/data/clean/lv_clean"))
 
 lv_files <- list.files(pattern=("*.csv"))
 lv_data <- NULL
@@ -95,12 +111,8 @@ lv_data$structured_targ <- gsub (".bmp", "", lv_data$structured_targ, ignore.cas
 
 # Read in vl files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-# For Mac
-# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean")
-
-# For PC
-setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vl_clean")
-
+# Set directory based on OS
+ifelse (os == "osx", setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vl_clean"), setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vl_clean"))
 vl_files <- list.files(pattern=("*.csv"))
 vl_data <- NULL
 
@@ -129,11 +141,8 @@ vl_data$structured_targ <- gsub (".bmp", "", vl_data$structured_targ, ignore.cas
 
 # Read in vv files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
-# For Mac
-# setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean")
-
-# For PC
-setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vv_clean")
+# Set directory based on OS
+ifelse (os == "osx", setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vv_clean"), setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vv_clean"))
 
 vv_files <- list.files(pattern=("*.csv"))
 vv_data <- NULL
@@ -164,6 +173,8 @@ vv_data$structured_targ <- gsub (".bmp", "", vv_data$structured_targ, ignore.cas
 
 # Separate random condition
 random_ll <- ll_data[ which(ll_data$condition== "R"),]
+# Index the rows
+random_ll <- tibble::rowid_to_column(random_ll, "index")
 
 ## Index the targets -----------------------------------------------
 
@@ -186,96 +197,166 @@ length(rll_line_number$part_id)
 # TEST: They should all contain 288 lines
 rll_line_number$total_lines
 
-# Set up variables to loop through participants by trials and track the target
-rt_col <- NULL
-target_rt <- NULL
-preceding_rt <- NULL
-id <- NULL
-trial <-NULL
-this_id <- NULL
-this_trial_num <- NULL
-this_loop <- NULL
-loop <- NULL
-preceding_loop <- NULL
-loop_before <- NULL
-this_targ_rt <- NULL
-rt_before <- NULL
-case <- NULL
-this_trial_before <- NULL
-this_trial_num_before <- NULL
-trial_before_df <- NULL
-trial_num_before <- NULL
-this_target_item <- NULL
-target_item <- NULL
-group <- NULL
+# Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ following stimulus ---------------------------------------------
+
+# Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
+rll_part_id <- NULL
+rll_rt <- NULL
+
+# Track the cases for calculating each type of reaction time
+# NOTE: These variables are for internal checking only and can be commented out below in case of bugs
+# Case 1: The participant responds during the target, which is the first trial in a block
+rll_case1 <- NULL
+# Case 2: The participant responds to the trial directly following the target, and the target is the first trial in a block
+rll_case2 <- NULL
+# Case 3: Anticipation of target, participant responded to stimulus directly preceding target
+rll_case3 <- NULL
+# Case 4: Response to target during the target trial
+rll_case4 <- NULL
+# Case 5: Delay from target, participant responded to stimulus directly following target
+rll_case5 <- NULL
+# Case 6: Missed target, record NA reaction time
+rll_case6 <- NULL
 
 # Isolate participants' response times.
-# Include rows when the participant responded to the stimulus preceding the target (i.e. any time that the participant pressed the button within one stimulus before the target)
-for(i in 1:nrow(random_ll_targets)) {
+
+# Include rows when the participant responded to stimuli adjacent to the target (i.e. any time that the participant pressed the button within one stimulus before or after the target)
+for (i in random_ll_targets$index) {
   # Isolate the ID number
-  this_id <- random_ll_targets[i,]$part_id
-  id <- append(id, paste(this_id))
-  # Isolate the trial number
-  this_trial_num <- random_ll_targets[i,]$trial_num
-  trial <- append(trial, paste(this_trial_num))
-  # Isolate the target
-  this_target_item <- random_ll_targets[i,]$random_targ
-  target_item <- append(target_item, paste(this_target_item))
-  # Isolate the target's rt
-  this_targ_rt <- random_ll_targets[i,]$l_rt
-  target_rt <- append(target_rt, paste(this_targ_rt))
-  # Isolate the loop value
-  this_loop <- random_ll_targets[i,]$this_l_loop
-  loop <- append (loop, this_loop)
-  # Isolate the row with the preceding trial for that participant
-  this_trial_before <- random_ll[which(random_ll$trial_num==(this_trial_num-1) & random_ll$part_id==this_id), ][1,]
-  trial_before_df <- rbind (this_trial_before, this_trial_before)
-  this_trial_num_before <- this_trial_before$trial_num
-  trial_num_before <- append (trial_num_before, this_trial_num_before)
-  # Isolate the preceding row's this_l_loop value.
-  preceding_loop <- this_trial_before$this_l_loop
-  loop_before <- append(loop_before, preceding_loop) 
-  preceding_rt <- this_trial_before$l_rt
-  rt_before <- append (rt_before, preceding_rt)
-  group <- append(group, "same")
-  # If the participant responded while the target was presented
-  if (!is.na(random_ll_targets[i,] [,"l_rt"])){
-    # Count their response time from the target stimulus
-    rt_col <- append (rt_col, random_ll_targets[i,][,"l_rt"])
+  rll_part_id <-
+    append(rll_part_id, paste(random_ll[i, ]$part_id))
+  
+  # Check if you are looking at the first trial in the block. If so, the target does not have a preceding target
+  if ((random_ll[i, ]$trial_num %% 48 == 1)
+      # Check if the participant responded during the target trial
+      & !is.na(random_ll[i, ]$l_rt)) {
+    # If so, count the response time from the target stimulus
+    rll_rt <- append (rll_rt, random_ll[i, ][, "l_rt"])
+    rll_case1 <- append (rll_case1, i)
+    } 
+  
+  # If it's the first trial and there was no target keypress
+  else if (((random_ll[i, ]$trial_num %%48 == 1) & (is.na(random_ll[i,]$l_rt)))
+           # Check that the following stimulus was not also a target from the same block (to avoid counting the same keypress twice)
+           & !((i + 1 %in% random_ll_targets) & floor(random_ll[i + 1, ]$trial_num/48)== floor(random_ll[i,]$trial_num/48))) {
+    # Then count the response time from the following stimulus
+    rll_rt <- append (rll_rt, 1000 + (random_ll[i + 1, ][, "l_rt"]))
+    rll_case2 <- append (rll_case2, i)
   }
-  # If the participant responded during the stimulus preceding the target (implies that we are not in the first row, which would not have a preceding row)
-  else if (!is.na(this_trial_before["l_rt"])){
-    # And the preceding line is from the same block
-    if (preceding_loop==this_loop-1){
-      # Take the rt from the preceding line and subtract it from 0, to determine how far in advance they responded
-      rt_col <- append (rt_col, 0-(1000-preceding_rt))
-      case <- append (case, "case 2")}
-    else {
-      # Copy the target response time of NA
-      rt_col <- append (rt_col, this_targ_rt)
-      case <- append (case, "case 3")}
+  
+  # Otherwise, if the participant responded during the stimulus preceding the target
+  else if (!is.na(random_ll[i - 1, ] [, "l_rt"])
+           # and the preceding stimulus was not also a target
+           & !((random_ll[i - 1, ][, "random_targ"] == (random_ll[i - 1, ][, "image"])))
+           #  and two stimuli prior was not also a target from the same block
+           & ! ((random_ll[i - 2, ][, "random_targ"] == random_ll[i - 2, ][, "image"])
+               & floor(random_ll[i,]$trial_num/48) == floor(random_ll[i-2,]$trial_num/48))
+           # and the preceding stimulus came from the same block
+           & floor((random_ll[i, ])$trial_num/48) == floor(random_ll[i - 1, ]$trial_num/48)
+           # and, because this is a random block
+           & 
+           # EITHER the target is a standalone, with no target within the two preceding trials or two following trials, and no keypress during or directly following
+           (
+             (!(i - 1) %in% random_ll_targets 
+             & floor(random_ll[i - 1, ]$trial_num/48) == floor(random_ll[i, ]$trial_num/48)
+             & !(i - 2) %in% random_ll_targets 
+             & floor(random_ll[i - 2, ]$trial_num/48) == floor(random_ll[i, ]$trial_num/48)
+             & is.na(random_ll[i, ]$l_rt)
+             & !(i + 1) %in% random_ll_targets 
+             & floor(random_ll[i + 1, ]$trial_num/48) == floor(random_ll[i, ]$trial_num/24) 
+             & is.na(random_ll[i + 1, ]$l_rt)
+             & !(i + 2) %in% random_ll_targets 
+             & floor(random_ll[i + 2, ]$trial_num/48) == floor(random_ll[i, ]$trial_num/48)
+             )
+            # OR just the following stimulus is not a target from the same block,
+            | (!(i + 1) %in% random_ll_targets 
+               & floor(random_ll[i + 1, ]$trial_num/48) != floor(random_ll[i, ]$trial_num/48)
+               # OR the following stimulus is a target from the same block, but has neither an on-target keypress
+               | ((i + 1) %in% random_ll_targets 
+                  & floor(random_ll[i + 1, ]$trial_num/48) == floor(random_ll[i, ]$trial_num/48) &
+                  is.na(random_ll[i + 1, ]$l_rt)
+                  # nor a delay from the same block
+                  & (floor(random_ll[i + 2, ]$trial_num/48) != floor(random_ll[i, ]$trial_num/48) |
+                     is.na(random_ll[i + 2, ]$l_rt)
+                     )
+                  )
+               )
+            )
+           )
+    
+    {
+    # Count the response time as how much sooner they responded than when the stimulus was presented (anticipation)
+    rll_rt <- append(rll_rt, (random_ll[i - 1, ][, "l_rt"] - 1000))
+    rll_case3 <- append (rll_case3, i)  }
+  
+  # Otherwise, if the participant responded during the target
+  else if (!is.na(random_ll[i, ] [, "l_rt"])
+           ###### and, if structured, the previous trial had no keypress
+           # &
+           # ((random_ll[i - 1, ][, "condition"] == "structured" &
+           #   is.na(random_ll[i - 1, ][, "keypress"]))
+           # and, because random, the previous stimulus was not also a target with no keypress, followed by a distractor with a keypress
+           & !(((i - 1) %in% random_ll_targets &
+                is.na(random_ll[i - 1, ] [, "l_rt"]) &
+                !(i + 1) %in% random_ll_targets &
+                !is.na(random_ll[i + 1, ] [, "l_rt"])))) {
+    # Count their response time as the keypress
+    rll_rt <-
+      append(rll_rt, (random_ll[i, ][, "l_rt"]))
+    rll_case4 <- append (rll_case4, i)
   }
-  # If the participant did not respond within 1 stimulus preceding the target, 
-  else if (is.na(random_ll_targets[i,] [,"l_rt"])){
-    # Copy their response time of NA
-    rt_col <- append (rt_col, this_targ_rt)
-    case <- append (case, "case 4")}
-  else{
-    rt_col <- append (rt_col, "anomaly, this shouldn't happen")
-    case <- append (case, "case 5")}
+  
+  # Otherwise, if the participant responded after the target
+  else if (!is.na(random_ll[i + 1, ]$l_rt > 0)
+           # And the following trial came from the same block
+           & floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 1, ]$trial_num/48)
+           # Check that EITHER the following stimulus either was also not a target
+           & (
+             !((i + 1) %in% random_ll_targets) |
+             # OR, if the following stimulus was also a target, that it also had a delay
+             (((i + 1) %in% random_ll_targets) &
+              !is.na(random_ll[i + 2, ]$l_rt) &
+              floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48)
+             )
+           )
+           # Also check that EITHER two stimuli following was not also a target from the same block (to avoid counting the same keypress twice)
+           &
+           (
+             !((i + 2) %in% random_ll_targets) |
+             floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48) |
+             # OR, if two stimuli following was also a target (from the same block),
+             ((i + 2) %in% random_ll_targets) &
+             floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48)
+             # that it also had a delay from the same block
+             &
+             !is.na(
+               random_ll[i + 3, ]$l_rt &
+               floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 3, ]$trial_num/48)
+             )
+           )) {
+    # Count their response time as how much later they responded than when the stimulus was presented
+    rll_rt <-
+      append(rll_rt, (1000 + random_ll[i + 1, ][, "l_rt"]))
+    rll_case5 <- append (rll_case5, i)
+    
+    # Otherwise, record the miss with a reaction time of NA
+  } else {
+    rll_rt <- append(rll_rt, NA)
+    rll_case6 <- append (rll_case6, i)
+  }
 }
 
 # Match id and response times
-random_ll_extracted <- data.frame(id, trial, target_item, trial_num_before, loop, loop_before, target_rt, rt_before, rt_col)
+random_ll_extracted <- data.frame(rll_part_id, rll_rt)
 
 # Reindex the trial numbers for only trials with response times -----------------------------------------------------------------------------------------------------
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(random_ll_extracted$id)
+extracted_part_id <- unique(random_ll_extracted$rll_part_id)
 
 # Find the number of targets shown to each participant
 target_sum <- NULL
-for(i in extracted_part_id){target_sum <- append(target_sum,sum(random_ll_extracted$id==i))}
+for(i in extracted_part_id){target_sum <- append(target_sum,sum(random_ll_extracted$rll_part_id==i))}
 
 # TEST: This should be equal to 32
 length (target_sum)
@@ -290,7 +371,7 @@ for (i in target_sum) {targ_index <- append (targ_index, rep(1:i, 1))}
 random_ll_extracted$targ_index <- targ_index
 
 # Remove any values of NA
-random_ll_extracted <- random_ll_extracted[!is.na(random_ll_extracted$rt_col),]
+random_ll_extracted <- random_ll_extracted[!is.na(random_ll_extracted$rll_rt),]
 
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
@@ -300,16 +381,16 @@ low_hits<-NULL
 hits<-NULL
 # Find people with a low hit rate
 for (id in extracted_part_id){
-  if (length(random_ll_extracted[which(random_ll_extracted$id==id & !is.na(random_ll_extracted$rt_col)),]$rt_col)<13)
+  if (length(random_ll_extracted[which(random_ll_extracted$rll_part_id==id & !is.na(random_ll_extracted$rll_rt)),]$rll_rt)<13)
   {low_hits<-append(low_hits, id)
-  hits<-append(hits, length(random_ll_extracted[which(random_ll_extracted$id==id),]$loop))
+  hits<-append(hits, length(random_ll_extracted[which(random_ll_extracted$rll_part_id==id),]$rll_part_id))
   }
 }
 
 # Remove people with low hit rate
-random_ll_extracted <- random_ll_extracted[! random_ll_extracted$id %in% low_hits, ]
+random_ll_extracted <- random_ll_extracted[! random_ll_extracted$rll_part_id %in% low_hits, ]
 # Find only participants with over 50% hit rate
-extracted_part_id <- unique(random_ll_extracted$id)
+extracted_part_id <- unique(random_ll_extracted$rll_part_id)
 
 # Define variables
 mean_rt <- NULL
@@ -337,11 +418,11 @@ for(id in extracted_part_id){
   type <- append (type, "random")
   same_or_diff <- append (same_or_diff, "same")
   test_phase <- append (test_phase, "lsl")
-  number_rts <- append(number_rts, length(!is.na(random_ll_extracted$rt_col[random_ll_extracted$id==id])))
-  mean_rt <- append(mean_rt, round(mean(random_ll_extracted$rt_col[random_ll_extracted$id==id], na.rm = TRUE),digits=3))
-  rt_slope <- append (rt_slope, round(summary(lm(random_ll_extracted$rt_col[random_ll_extracted$id==id]~random_ll_extracted$targ_index[random_ll_extracted$id==id]))$coefficient[2,1],digits = 4))
-  data_this_id <- (random_ll_extracted[ which(random_ll_extracted$id==id),])
-  this_range<- range(data_this_id$rt_col, na.rm = TRUE)
+  number_rts <- append(number_rts, length(!is.na(random_ll_extracted$rll_rt[random_ll_extracted$rll_part_id==id])))
+  mean_rt <- append(mean_rt, round(mean(random_ll_extracted$rll_rt[random_ll_extracted$rll_part_id==id], na.rm = TRUE),digits=3))
+  rt_slope <- append (rt_slope, round(summary(lm(random_ll_extracted$rll_rt[random_ll_extracted$rll_part_id==id]~random_ll_extracted$targ_index[random_ll_extracted$rll_part_id==id]))$coefficient[2,1],digits = 4))
+  data_this_id <- (random_ll_extracted[ which(random_ll_extracted$rll_part_id==id),])
+  this_range<- range(data_this_id$rll_rt, na.rm = TRUE)
   upper_bound <- append (upper_bound,this_range[1])
   lower_bound <- append (lower_bound,this_range[2])
   range <- append (range, (this_range[2]-this_range[1]))
@@ -353,6 +434,27 @@ sd(number_rts)
 
 # Combine data for each participant
 rll <- data.frame(part_id, task, same_or_diff, test_phase, domain, type, mean_rt, range, upper_bound, lower_bound, rt_slope) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
