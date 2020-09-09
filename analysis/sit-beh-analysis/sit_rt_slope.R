@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Sept 8, 2020
+#  Last modified Sept 9, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
