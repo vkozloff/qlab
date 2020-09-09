@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Sept 8, 2020
+#  Last modified Sept 9, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -291,10 +291,6 @@ for (i in random_ll_targets$index) {
   
   # Otherwise, if the participant responded during the target
   else if (!is.na(random_ll[i, ] [, "l_rt"])
-           ###### and, if structured, the previous trial had no keypress
-           # &
-           # ((random_ll[i - 1, ][, "condition"] == "structured" &
-           #   is.na(random_ll[i - 1, ][, "keypress"]))
            # and, because random, the previous stimulus was not also a target with no keypress, followed by a distractor with a keypress
            & !(((i - 1) %in% random_ll_targets &
                 is.na(random_ll[i - 1, ] [, "l_rt"]) &
@@ -560,10 +556,6 @@ for (i in random_lv_targets$index) {
   
   # Otherwise, if the participant responded during the target
   else if (!is.na(random_lv[i, ] [, "v_rt"])
-           ###### and, if structured, the previous trial had no keypress
-           # &
-           # ((random_lv[i - 1, ][, "condition"] == "structured" &
-           #   is.na(random_lv[i - 1, ][, "keypress"]))
            # and, because random, the previous stimulus was not also a target with no keypress, folvowed by a distractor with a keypress
            & !(((i - 1) %in% random_lv_targets &
                 is.na(random_lv[i - 1, ] [, "v_rt"]) &
@@ -825,11 +817,7 @@ for (i in random_vl_targets$index) {
   
   # Otherwise, if the participant responded during the target
   else if (!is.na(random_vl[i, ] [, "l_rt"])
-           ###### and, if structured, the previous trial had no keypress
-           # &
-           # ((random_vl[i - 1, ][, "condition"] == "structured" &
-           #   is.na(random_vl[i - 1, ][, "keypress"]))
-           # and, because random, the previous stimulus was not also a target with no keypress, fovlowed by a distractor with a keypress
+           # and, because random, the previous stimulus was not also a target with no keypress, followed by a distractor with a keypress
            & !(((i - 1) %in% random_vl_targets &
                 is.na(random_vl[i - 1, ] [, "l_rt"]) &
                 !(i + 1) %in% random_vl_targets &
@@ -1093,10 +1081,6 @@ for (i in random_vv_targets$index) {
   
   # Otherwise, if the participant responded during the target
   else if (!is.na(random_vv[i, ] [, "v_rt"])
-           ###### and, if structured, the previous trial had no keypress
-           # &
-           # ((random_vv[i - 1, ][, "condition"] == "structured" &
-           #   is.na(random_vv[i - 1, ][, "keypress"]))
            # and, because random, the previous stimulus was not also a target with no keypress, fovvowed by a distractor with a keypress
            & !(((i - 1) %in% random_vv_targets &
                 is.na(random_vv[i - 1, ] [, "v_rt"]) &
@@ -1292,92 +1276,86 @@ sll_case6 <- NULL
 # Isolate participants' response times.
 
 # Include rows when the participant responded to stimuli adjacent to the target (i.e. any time that the participant pressed the button within one stimulus before or after the target)
-for (i in random_ll_targets$index) {
+for (i in structured_ll_targets$index) {
   # Isolate the ID number
   sll_part_id <-
-    append(sll_part_id, paste(random_ll[i, ]$part_id))
+    append(sll_part_id, paste(structured_ll[i, ]$part_id))
   
   # Check if you are looking at the first trial in the block. If so, the target does not have a preceding target
-  if ((random_ll[i, ]$trial_num %% 48 == 1)
+  if ((structured_ll[i, ]$trial_num %% 48 == 1)
       # Check if the participant responded during the target trial
-      & !is.na(random_ll[i, ]$l_rt)) {
+      & !is.na(structured_ll[i, ]$l_rt)) {
     # If so, count the response time from the target stimulus
-    sll_rt <- append (sll_rt, random_ll[i, ][, "l_rt"])
+    sll_rt <- append (sll_rt, structured_ll[i, ][, "l_rt"])
     sll_case1 <- append (sll_case1, i)
   } 
   
   # If it's the first trial and there was no target keypress
-  else if (((random_ll[i, ]$trial_num %%48 == 1) & (is.na(random_ll[i,]$l_rt)))
+  else if (((structured_ll[i, ]$trial_num %%48 == 1) & (is.na(structured_ll[i,]$l_rt)))
            # Check that the following stimulus was not also a target from the same block (to avoid counting the same keypress twice)
-           & !((i + 1 %in% random_ll_targets) & floor(random_ll[i + 1, ]$trial_num/48)== floor(random_ll[i,]$trial_num/48))) {
+           & !((i + 1 %in% structured_ll_targets) & floor(structured_ll[i + 1, ]$trial_num/48)== floor(structured_ll[i,]$trial_num/48))) {
     # Then count the response time from the following stimulus
-    sll_rt <- append (sll_rt, 1000 + (random_ll[i + 1, ][, "l_rt"]))
+    sll_rt <- append (sll_rt, 1000 + (structured_ll[i + 1, ][, "l_rt"]))
     sll_case2 <- append (sll_case2, i)
   }
   
   # Otherwise, if the participant responded during the stimulus preceding the target
-  else if (!is.na(random_ll[i - 1, ] [, "l_rt"])
+  else if (!is.na(structured_ll[i - 1, ] [, "l_rt"])
            # and the preceding stimulus was not also a target
-           & !((random_ll[i - 1, ][, "random_targ"] == (random_ll[i - 1, ][, "image"])))
+           & !((structured_ll[i - 1, ][, "structured_targ"] == (structured_ll[i - 1, ][, "image"])))
            #  and two stimuli prior was not also a target from the same block
-           & ! ((random_ll[i - 2, ][, "random_targ"] == random_ll[i - 2, ][, "image"])
-                & floor(random_ll[i,]$trial_num/48) == floor(random_ll[i-2,]$trial_num/48))
+           & ! ((structured_ll[i - 2, ][, "structured_targ"] == structured_ll[i - 2, ][, "image"])
+                & floor(structured_ll[i,]$trial_num/48) == floor(structured_ll[i-2,]$trial_num/48))
            # and the preceding stimulus came from the same block
-           & floor((random_ll[i, ])$trial_num/48) == floor(random_ll[i - 1, ]$trial_num/48)
+           & floor((structured_ll[i, ])$trial_num/48) == floor(structured_ll[i - 1, ]$trial_num/48)
            )
   {
     # Count the response time as how much sooner they responded than when the stimulus was presented (anticipation)
-    sll_rt <- append(sll_rt, (random_ll[i - 1, ][, "l_rt"] - 1000))
+    sll_rt <- append(sll_rt, (structured_ll[i - 1, ][, "l_rt"] - 1000))
     sll_case3 <- append (sll_case3, i)  }
   
   # Otherwise, if the participant responded during the target
-  else if (!is.na(random_ll[i, ] [, "l_rt"])
-           ###### and, if structured, the previous trial had no keypress
-           # &
-           # ((random_ll[i - 1, ][, "condition"] == "structured" &
-           #   is.na(random_ll[i - 1, ][, "keypress"]))
-           # and, because random, the previous stimulus was not also a target with no keypress, followed by a distractor with a keypress
-           & !(((i - 1) %in% random_ll_targets &
-                is.na(random_ll[i - 1, ] [, "l_rt"]) &
-                !(i + 1) %in% random_ll_targets &
-                !is.na(random_ll[i + 1, ] [, "l_rt"])))) {
+  else if (!is.na(structured_ll[i, ] [, "l_rt"])
+           # and, because structured, the previous trial had no keypress
+           &
+           (is.na(structured_ll[i - 1, ][, "l_rt"]))){
     # Count their response time as the keypress
     sll_rt <-
-      append(sll_rt, (random_ll[i, ][, "l_rt"]))
+      append(sll_rt, (structured_ll[i, ][, "l_rt"]))
     sll_case4 <- append (sll_case4, i)
   }
   
   # Otherwise, if the participant responded after the target
-  else if (!is.na(random_ll[i + 1, ]$l_rt > 0)
+  else if (!is.na(structured_ll[i + 1, ]$l_rt > 0)
            # And the following trial came from the same block
-           & floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 1, ]$trial_num/48)
+           & floor(structured_ll[i, ]$trial_num/48) == floor(structured_ll[i + 1, ]$trial_num/48)
            # Check that EITHER the following stimulus either was also not a target
            & (
-             !((i + 1) %in% random_ll_targets) |
+             !((i + 1) %in% structured_ll_targets) |
              # OR, if the following stimulus was also a target, that it also had a delay
-             (((i + 1) %in% random_ll_targets) &
-              !is.na(random_ll[i + 2, ]$l_rt) &
-              floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48)
+             (((i + 1) %in% structured_ll_targets) &
+              !is.na(structured_ll[i + 2, ]$l_rt) &
+              floor(structured_ll[i, ]$trial_num/48) == floor(structured_ll[i + 2, ]$trial_num/48)
              )
            )
            # Also check that EITHER two stimuli following was not also a target from the same block (to avoid counting the same keypress twice)
            &
            (
-             !((i + 2) %in% random_ll_targets) |
-             floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48) |
+             !((i + 2) %in% structured_ll_targets) |
+             floor(structured_ll[i, ]$trial_num/48) == floor(structured_ll[i + 2, ]$trial_num/48) |
              # OR, if two stimuli following was also a target (from the same block),
-             ((i + 2) %in% random_ll_targets) &
-             floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 2, ]$trial_num/48)
+             ((i + 2) %in% structured_ll_targets) &
+             floor(structured_ll[i, ]$trial_num/48) == floor(structured_ll[i + 2, ]$trial_num/48)
              # that it also had a delay from the same block
              &
              !is.na(
-               random_ll[i + 3, ]$l_rt &
-               floor(random_ll[i, ]$trial_num/48) == floor(random_ll[i + 3, ]$trial_num/48)
+               structured_ll[i + 3, ]$l_rt &
+               floor(structured_ll[i, ]$trial_num/48) == floor(structured_ll[i + 3, ]$trial_num/48)
              )
            )) {
     # Count their response time as how much later they responded than when the stimulus was presented
     sll_rt <-
-      append(sll_rt, (1000 + random_ll[i + 1, ][, "l_rt"]))
+      append(sll_rt, (1000 + structured_ll[i + 1, ][, "l_rt"]))
     sll_case5 <- append (sll_case5, i)
     
     # Otherwise, record the miss with a reaction time of NA
@@ -1387,21 +1365,18 @@ for (i in random_ll_targets$index) {
   }
 }
 
-
-
-
-
-
 # Match id and response times
-random_ll_extracted <- data.frame(sll_part_id, sll_rt)
+structured_ll_extracted <- data.frame(sll_part_id, sll_rt)
+
+
 # Reindex the trial numbers for only trials with response times -----------------------------------------------------------------------------------------------------
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_ll_extracted$id)
+extracted_part_id <- unique(structured_ll_extracted$sll_part_id)
 
 # Find the number of targets shown to each participant
 target_sum <- NULL
-for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_ll_extracted$id==i))}
+for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_ll_extracted$sll_part_id==i))}
 
 # TO TEST: This should be 32 (for the 32 participants)
 length(target_sum)
@@ -1416,10 +1391,10 @@ for (i in target_sum) {targ_index <- append (targ_index, rep(1:i, 1))}
 structured_ll_extracted$targ_index <- targ_index
 
 # Remove any values of NA
-structured_ll_extracted <- structured_ll_extracted[!is.na(structured_ll_extracted$rt_col),]
+structured_ll_extracted <- structured_ll_extracted[!is.na(structured_ll_extracted$sll_rt),]
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_ll_extracted$id)
+extracted_part_id <- unique(structured_ll_extracted$sll_part_id)
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -1427,14 +1402,13 @@ extracted_part_id <- unique(structured_ll_extracted$id)
 low_hits<-NULL
 # Find people with a low hit rate
 for (id in extracted_part_id){
-  if (length(structured_ll_extracted[which(structured_ll_extracted$id==id),]$loop)<13)
+  if (length(structured_ll_extracted[which(structured_ll_extracted$sll_part_id==id),]$sll_rt)<13)
   {low_hits<-append(low_hits, id)}
 }
 # Remove people with low hit rate
-structured_ll_extracted <- structured_ll_extracted[! structured_ll_extracted$id %in% low_hits, ]
+structured_ll_extracted <- structured_ll_extracted[! structured_ll_extracted$sll_part_id %in% low_hits, ]
 # Find only participants with over 50% hit rate
-extracted_part_id <- unique(structured_ll_extracted$id)
-
+extracted_part_id <- unique(structured_ll_extracted$sll_part_id)
 
 # Define variables
 mean_rt <- NULL
@@ -1462,11 +1436,11 @@ for(id in extracted_part_id){
   type <- append (type, "structured")
   same_or_diff <- append (same_or_diff, "same")
   test_phase <- append (test_phase, "lsl")
-  mean_rt <- append(mean_rt, round(mean(structured_ll_extracted$rt_col[structured_ll_extracted$id==id]),digits=3))
-  number_rts <- append(number_rts, length(!is.na(structured_ll_extracted$rt_col[structured_ll_extracted$id==id])))
-  rt_slope <- append (rt_slope, round(summary(lm(structured_ll_extracted$rt_col[structured_ll_extracted$id==id]~structured_ll_extracted$targ_index[structured_ll_extracted$id==id]))$coefficient[2,1],digits = 4))
-  data_this_id <- (structured_ll_extracted[ which(structured_ll_extracted$id==id),])
-  this_range<- range(data_this_id$rt_col, na.rm = TRUE)
+  mean_rt <- append(mean_rt, round(mean(structured_ll_extracted$sll_rt[structured_ll_extracted$sll_part_id==id]),digits=3))
+  number_rts <- append(number_rts, length(!is.na(structured_ll_extracted$sll_rt[structured_ll_extracted$sll_part_id==id])))
+  rt_slope <- append (rt_slope, round(summary(lm(structured_ll_extracted$sll_rt[structured_ll_extracted$sll_part_id==id]~structured_ll_extracted$targ_index[structured_ll_extracted$sll_part_id==id]))$coefficient[2,1],digits = 4))
+  data_this_id <- (structured_ll_extracted[ which(structured_ll_extracted$sll_part_id==id),])
+  this_range<- range(data_this_id$sll_rt, na.rm = TRUE)
   range <- append (range, (this_range[2]-this_range[1]))
   upper_bound <- append (upper_bound,this_range[1])
   lower_bound <- append (lower_bound,this_range[2])
@@ -1496,7 +1470,6 @@ structured_lv <- lv_data[ which(lv_data$condition== "S"),]
 # Index the rows
 structured_lv <- tibble::rowid_to_column(structured_lv, "index")
 
-
 # Find all of the triplets presented
 structured_lv$triplet <- rep (do.call(paste, as.data.frame(t(matrix(structured_lv$image, 3)), stringsAsFactors=FALSE)), each = 3)
 
@@ -1518,109 +1491,130 @@ length(slv_line_number$part_id)
 # They should all contain 288 lines
 slv_line_number$total_lines
 
-# Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ folvowing stimulus ---------------------------------------------
+# Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovlowing stimulus ---------------------------------------------
+# Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
+slv_part_id <- NULL
+slv_rt <- NULL
 
-
-
-
-
-
-
-
-
-# Set up variables to loop through participants by trials and track the target
-rt_col <- NULL
-target_rt <- NULL
-preceding_rt <- NULL
-id <- NULL
-trial <-NULL
-this_id <- NULL
-this_trial_num <- NULL
-this_loop <- NULL
-loop <- NULL
-preceding_loop <- NULL
-loop_before <- NULL
-this_targ_rt <- NULL
-rt_before <- NULL
-case <- NULL
-this_trial_before <- NULL
-this_trial_num_before <- NULL
-trial_before_df <- NULL
-trial_num_before <- NULL
-this_target_item <- NULL
-target_item <- NULL
-group <- NULL
+# Track the cases for calculating each type of reaction time
+# NOTE: These variables are for internal checking only and can be commented out below in case of bugs
+# Case 1: The participant responds during the target, which is the first trial in a block
+slv_case1 <- NULL
+# Case 2: The participant responds to the trial directly fovvowing the target, and the target is the first trial in a block
+slv_case2 <- NULL
+# Case 3: Anticipation of target, participant responded to stimulus directly preceding target
+slv_case3 <- NULL
+# Case 4: Response to target during the target trial
+slv_case4 <- NULL
+# Case 5: Delay from target, participant responded to stimulus directly fovvowing target
+slv_case5 <- NULL
+# Case 6: Missed target, record NA reaction time
+slv_case6 <- NULL
 
 # Isolate participants' response times.
-# Include rows when the participant responded to the stimulus preceding the target (i.e. any time that the participant pressed the button within one stimulus before the target)
-for(i in 1:nrow(structured_lv_targets)) 
-{
+
+# Include rows when the participant responded to stimuli adjacent to the target (i.e. any time that the participant pressed the button within one stimulus before or after the target)
+for (i in structured_lv_targets$index) {
   # Isolate the ID number
-  this_id <- structured_lv_targets[i,]$part_id
-  id <- append(id, paste(this_id))
-  # Isolate the trial number
-  this_trial_num <- structured_lv_targets[i,]$trialnum
-  trial <- append(trial, paste(this_trial_num))
-  # Isolate the target
-  this_target_item <- structured_lv_targets[i,]$structured_targ
-  target_item <- append(target_item, paste(this_target_item))
-  # Isolate the target's rt
-  this_targ_rt <- structured_lv_targets[i,]$l_rt
-  target_rt <- append(target_rt, paste(this_targ_rt))
-  # Isolate the loop value
-  this_loop <- structured_lv_targets[i,]$this_l_loop
-  loop <- append (loop, this_loop)
-  # Isolate the row with the preceding trial for that participant
-  this_trial_before <- structured_lv[which(structured_lv$trialnum==this_trial_num-1 & structured_lv$part_id==this_id), ][1,]
-  trial_before_df <- rbind (this_trial_before, this_trial_before)
-  this_trial_num_before <- this_trial_before$trialnum
-  trial_num_before <- append (trial_num_before, this_trial_num_before)
-  # Isolate the preceding row's this_l_loop value.
-  preceding_loop <- this_trial_before$this_l_loop
-  loop_before <- append(loop_before, preceding_loop) 
-  #loop_after <- append (loop_after, folvowing_loop)
-  preceding_rt <- this_trial_before$l_rt
-  rt_before <- append (rt_before, preceding_rt)
-  group <- append(group, "different")
-  # If the participant responded while the target was presented
-  if (!is.na(structured_lv_targets[i,] [,"l_rt"])){
-    # Count their response time from the target stimulus
-    rt_col <- append (rt_col, structured_lv_targets[i,][,"l_rt"])
+  slv_part_id <-
+    append(slv_part_id, paste(structured_lv[i, ]$part_id))
+  
+  # Check if you are looking at the first trial in the block. If so, the target does not have a preceding target
+  if ((structured_lv[i, ]$trialnum %% 48 == 1)
+      # Check if the participant responded during the target trial
+      & !is.na(structured_lv[i, ]$l_rt)) {
+    # If so, count the response time from the target stimulus
+    slv_rt <- append (l_rt, structured_lv[i, ][, "l_rt"])
+    slv_case1 <- append (slv_case1, i)
+  } 
+  
+  # If it's the first trial and there was no target keypress
+  else if (((structured_lv[i, ]$trialnum %%48 == 1) & (is.na(structured_lv[i,]$l_rt)))
+           # Check that the following stimulus was not also a target from the same block (to avoid counting the same keypress twice)
+           & !((i + 1 %in% structured_lv_targets) & floor(structured_lv[i + 1, ]$trialnum/48)== floor(structured_lv[i,]$trialnum/48))) {
+    # Then count the response time from the following stimulus
+    slv_rt <- append (slv_rt, 1000 + (structured_lv[i + 1, ][, "l_rt"]))
+    slv_case2 <- append (slv_case2, i)
   }
-  # If the participant responded during the stimulus preceding the target (implies that we are not in the first row, which would not have a preceding row)
-  else if (!is.na(this_trial_before["l_rt"])){
-    # And the preceding line is from the same block
-    if (preceding_loop==this_loop-1){
-      # Take the rt from the preceding line and subtract it from 0, to determine how far in advance they responded
-      rt_col <- append (rt_col, 0-(1000-preceding_rt))
-      case <- append (case, "case 2")}
-    else {
-      # Copy the target response time of NA
-      rt_col <- append (rt_col, this_targ_rt)
-      case <- append (case, "case 3")}
+  
+  # Otherwise, if the participant responded during the stimulus preceding the target
+  else if (!is.na(structured_lv[i - 1, ] [, "l_rt"])
+           # and the preceding stimulus was not also a target
+           & !((structured_lv[i - 1, ][, "structured_targ"] == (structured_lv[i - 1, ][, "image"])))
+           #  and two stimuli prior was not also a target from the same block
+           & ! ((structured_lv[i - 2, ][, "structured_targ"] == structured_lv[i - 2, ][, "image"])
+                & floor(structured_lv[i,]$trialnum/48) == floor(structured_lv[i-2,]$trialnum/48))
+           # and the preceding stimulus came from the same block
+           & floor((structured_lv[i, ])$trialnum/48) == floor(structured_lv[i - 1, ]$trialnum/48)
+  )
+  {
+    # Count the response time as how much sooner they responded than when the stimulus was presented (anticipation)
+    slv_rt <- append(slv_rt, (structured_lv[i - 1, ][, "l_rt"] - 1000))
+    slv_case3 <- append (slv_case3, i)  }
+  
+  # Otherwise, if the participant responded during the target
+  else if (!is.na(structured_lv[i, ] [, "l_rt"])
+           # and, because structured, the previous trial had no keypress
+           &
+           (is.na(structured_lv[i - 1, ][, "l_rt"]))){
+    # Count their response time as the keypress
+    slv_rt <-
+      append(slv_rt, (structured_lv[i, ][, "l_rt"]))
+    slv_case4 <- append (slv_case4, i)
   }
-  # If the participant did not respond within 1 stimulus preceding the target, 
-  else if (is.na(structured_lv_targets[i,] [,"l_rt"])){
-    # Copy their response time of NA
-    rt_col <- append (rt_col, this_targ_rt)
-    case <- append (case, "case 4")}
-  else{
-    rt_col <- append (rt_col, "anomaly, this shouldn't happen")
-    case <- append (case, "case 5")}
+  
+  
+  # Otherwise, if the participant responded after the target
+  else if (!is.na(structured_lv[i + 1, ]$l_rt > 0)
+           # And the following trial came from the same block
+           & floor(structured_lv[i, ]$trialnum/48) == floor(structured_lv[i + 1, ]$trialnum/48)
+           # Check that EITHER the following stimulus either was also not a target
+           & (
+             !((i + 1) %in% structured_lv_targets) |
+             # OR, if the following stimulus was also a target, that it also had a delay
+             (((i + 1) %in% structured_lv_targets) &
+              !is.na(structured_lv[i + 2, ]$l_rt) &
+              floor(structured_lv[i, ]$trialnum/48) == floor(structured_lv[i + 2, ]$trialnum/48)
+             )
+           )
+           # Also check that EITHER two stimuli following was not also a target from the same block (to avoid counting the same keypress twice)
+           &
+           (
+             !((i + 2) %in% structured_lv_targets) |
+             floor(structured_lv[i, ]$trialnum/48) == floor(structured_lv[i + 2, ]$trialnum/48) |
+             # OR, if two stimuli following was also a target (from the same block),
+             ((i + 2) %in% structured_lv_targets) &
+             floor(structured_lv[i, ]$trialnum/48) == floor(structured_lv[i + 2, ]$trialnum/48)
+             # that it also had a delay from the same block
+             &
+             !is.na(
+               structured_lv[i + 3, ]$l_rt &
+               floor(structured_lv[i, ]$trialnum/48) == floor(structured_lv[i + 3, ]$trialnum/48)
+             )
+           )) {
+    # Count their response time as how much later they responded than when the stimulus was presented
+    slv_rt <-
+      append(slv_rt, (1000 + structured_lv[i + 1, ][, "l_rt"]))
+    slv_case5 <- append (slv_case5, i)
+    
+    # Otherwise, record the miss with a reaction time of NA
+  } else {
+    slv_rt <- append(slv_rt, NA)
+    slv_case6 <- append (slv_case6, i)
+  }
 }
 
 # Match id and response times
-structured_lv_extracted <- data.frame(id, trial, target_item, trial_num_before, loop, loop_before, target_rt, rt_before, rt_col)
-
+structured_lv_extracted <- data.frame(slv_part_id, slv_rt)
 
 # Reindex the trial numbers for only trials with response times -----------------------------------------------------------------------------------------------------
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_lv_extracted$id)
+extracted_part_id <- unique(structured_lv_extracted$slv_part_id)
 
 # Find the number of targets shown to each participant
 target_sum <- NULL
-for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_lv_extracted$id==i))}
+for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_lv_extracted$slv_part_id==i))}
 
 # TEST: This should be equal to 32
 length (target_sum)
@@ -1636,7 +1630,7 @@ for (i in target_sum) {targ_index <- append (targ_index, rep(1:i, 1))}
 structured_lv_extracted$targ_index <- targ_index
 
 # Remove any values of NA
-structured_lv_extracted <- structured_lv_extracted[!is.na(structured_lv_extracted$rt_col),]
+structured_lv_extracted <- structured_lv_extracted[!is.na(structured_lv_extracted$slv_rt),]
 
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
@@ -1645,13 +1639,16 @@ structured_lv_extracted <- structured_lv_extracted[!is.na(structured_lv_extracte
 low_hits<-NULL
 # Find people with a low hit rate
 for (id in extracted_part_id){
-  if (length(structured_lv_extracted[which(structured_lv_extracted$id==id),]$loop)<13)
+  if (length(structured_lv_extracted[which(structured_lv_extracted$slv_part_id==id),]$slv_part_id)<13)
   {low_hits<-append(low_hits, id)}
 }
+
+
+
 # Remove people with low hit rate
-structured_lv_extracted <- structured_lv_extracted[! structured_lv_extracted$id %in% low_hits, ]
+structured_lv_extracted <- structured_lv_extracted[! structured_lv_extracted$slv_part_id %in% low_hits, ]
 # Find only participants with over 50% hit rate
-extracted_part_id <- unique(structured_lv_extracted$id)
+extracted_part_id <- unique(structured_lv_extracted$slv_part_id)
 
 # Define variables
 mean_rt <- NULL
@@ -1679,11 +1676,11 @@ for(id in extracted_part_id){
   type <- append (type, "structured")
   same_or_diff <- append (same_or_diff, "different")
   test_phase <- append (test_phase, "lsl")
-  mean_rt <- append(mean_rt, round(mean(structured_lv_extracted$rt_col[structured_lv_extracted$id==id]),digits=3))
-  number_rts <- append(number_rts, length(!is.na(structured_lv_extracted$rt_col[structured_lv_extracted$id==id])))
-  rt_slope <- append (rt_slope, round(summary(lm(structured_lv_extracted$rt_col[structured_lv_extracted$id==id]~structured_lv_extracted$targ_index[structured_lv_extracted$id==id]))$coefficient[2,1],digits = 4))
-  data_this_id <- (structured_lv_extracted[ which(structured_lv_extracted$id==id),])
-  this_range<- range(data_this_id$rt_col, na.rm = TRUE)
+  mean_rt <- append(mean_rt, round(mean(structured_lv_extracted$slv_rt[structured_lv_extracted$slv_part_id==id]),digits=3))
+  number_rts <- append(number_rts, length(!is.na(structured_lv_extracted$slv_rt[structured_lv_extracted$slv_part_id==id])))
+  rt_slope <- append (rt_slope, round(summary(lm(structured_lv_extracted$slv_rt[structured_lv_extracted$slv_part_id==id]~structured_lv_extracted$targ_index[structured_lv_extracted$slv_part_id==id]))$coefficient[2,1],digits = 4))
+  data_this_id <- (structured_lv_extracted[ which(structured_lv_extracted$slv_part_id==id),])
+  this_range<- range(data_this_id$slv_rt, na.rm = TRUE)
   range <- append (range, (this_range[2]-this_range[1]))
   upper_bound <- append (upper_bound,this_range[1])
   lower_bound <- append (lower_bound,this_range[2])
@@ -1705,6 +1702,23 @@ mean_slv_rt_slope <- mean (slv$rt_slope)
 mean_slv_rt_slope
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ******************** CONDITION 7: vl structured*******************
 
 # Separate structured and structured conditions
@@ -1716,6 +1730,9 @@ structured_vl$triplet <- gsub("Alien", "", structured_vl$triplet)
 
 # Remove the mistaken 10-21-22 triplet
 structured_vl <- (dplyr::filter(structured_vl, triplet!="10 11 22"))
+
+# Index the rows
+structured_vl <- tibble::rowid_to_column(structured_vl, "index")
 
 # Identify the rows when this condition's target was presented
 structured_vl_targets <- structured_vl[which(structured_vl$structured_targ==structured_vl$image),]
@@ -1737,109 +1754,133 @@ length(svl_line_number$part_id)
 svl_line_number$total_lines
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovlowing stimulus ---------------------------------------------
+# Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
+svl_part_id <- NULL
+svl_rt <- NULL
 
-# Set up variables to loop through participants by trials and track the target
-rt_col <- NULL
-target_rt <- NULL
-preceding_rt <- NULL
-id <- NULL
-trial <-NULL
-this_id <- NULL
-this_trial_num <- NULL
-this_loop <- NULL
-loop <- NULL
-preceding_loop <- NULL
-loop_before <- NULL
-this_targ_rt <- NULL
-rt_before <- NULL
-case <- NULL
-this_trial_before <- NULL
-this_trial_num_before <- NULL
-trial_before_df <- NULL
-trial_num_before <- NULL
-this_target_item <- NULL
-target_item <- NULL
-group <- NULL
-
-# Identify the rows when this condition's target was presented
-structured_vl_targets <- structured_vl[which(structured_vl$structured_targ==structured_vl$image),]
+# Track the cases for calculating each type of reaction time
+# NOTE: These variables are for internal checking only and can be commented out below in case of bugs
+# Case 1: The participant responds during the target, which is the first trial in a block
+svl_case1 <- NULL
+# Case 2: The participant responds to the trial directly fovvowing the target, and the target is the first trial in a block
+svl_case2 <- NULL
+# Case 3: Anticipation of target, participant responded to stimulus directly preceding target
+svl_case3 <- NULL
+# Case 4: Response to target during the target trial
+svl_case4 <- NULL
+# Case 5: Delay from target, participant responded to stimulus directly fovvowing target
+svl_case5 <- NULL
+# Case 6: Missed target, record NA reaction time
+svl_case6 <- NULL
 
 # Isolate participants' response times.
-# Include rows when the participant responded to the stimulus preceding the target (i.e. any time that the participant pressed the button within one stimulus before the target)
-for(i in 1:nrow(structured_vl_targets)) 
-{
+
+# Include rows when the participant responded to stimuli adjacent to the target (i.e. any time that the participant pressed the button within one stimulus before or after the target)
+for (i in structured_vl_targets$index) {
   # Isolate the ID number
-  this_id <- structured_vl_targets[i,]$part_id
-  id <- append(id, paste(this_id))
-  # Isolate the trial number
-  this_trial_num <- structured_vl_targets[i,]$trial_num
-  trial <- append(trial, paste(this_trial_num))
-  # Isolate the target
-  this_target_item <- structured_vl_targets[i,]$structured_targ
-  target_item <- append(target_item, paste(this_target_item))
-  # Isolate the target's rt
-  this_targ_rt <- structured_vl_targets[i,]$v_rt
-  target_rt <- append(target_rt, paste(this_targ_rt))
-  # Isolate the loop value
-  this_loop <- structured_vl_targets[i,]$this_v_loop
-  loop <- append (loop, this_loop)
-  # Isolate the row with the preceding trial for that participant
-  this_trial_before <- structured_vl[which(structured_vl$trial_num==this_trial_num-1 & structured_vl$part_id==this_id), ][1,]
-  trial_before_df <- rbind (this_trial_before, this_trial_before)
-  this_trial_num_before <- this_trial_before$trial_num
-  trial_num_before <- append (trial_num_before, this_trial_num_before)
-  # Isolate the preceding row's this_v_loop value.
-  preceding_loop <- this_trial_before$this_v_loop
-  loop_before <- append(loop_before, preceding_loop) 
-  #loop_after <- append (loop_after, fovlowing_loop)
-  preceding_rt <- this_trial_before$v_rt
-  rt_before <- append (rt_before, preceding_rt)
-  group <- append(group, "different")
-  # If the participant responded while the target was presented
-  if (!is.na(structured_vl_targets[i,] [,"v_rt"])){
-    # Count their response time from the target stimulus
-    rt_col <- append (rt_col, structured_vl_targets[i,][,"v_rt"])
+  svl_part_id <-
+    append(svl_part_id, paste(structured_vl[i, ]$part_id))
+  
+  # Check if you are looking at the first trial in the block. If so, the target does not have a preceding target
+  if ((structured_vl[i, ]$trial_num %% 48 == 1)
+      # Check if the participant responded during the target trial
+      & !is.na(structured_vl[i, ]$v_rt)) {
+    # If so, count the response time from the target stimulus
+    svl_rt <- append (svl_rt, structured_vl[i, ][, "v_rt"])
+    svl_case1 <- append (svl_case1, i)
+  } 
+  
+  # If it's the first trial and there was no target keypress
+  else if (((structured_vl[i, ]$trial_num %%48 == 1) & (is.na(structured_vl[i,]$v_rt)))
+           # Check that the following stimulus was not also a target from the same block (to avoid counting the same keypress twice)
+           & !((i + 1 %in% structured_vl_targets) & floor(structured_vl[i + 1, ]$trial_num/48)== floor(structured_vl[i,]$trial_num/48))) {
+    # Then count the response time from the following stimulus
+    svl_rt <- append (svl_rt, 1000 + (structured_vl[i + 1, ][, "v_rt"]))
+    svl_case2 <- append (svl_case2, i)
   }
-  # If the participant responded during the stimulus preceding the target (implies that we are not in the first row, which would not have a preceding row)
-  else if (!is.na(this_trial_before["v_rt"])){
-    # And the preceding line is from the same block
-    if (preceding_loop==this_loop-1){
-      # Take the rt from the preceding line and subtract it from 0, to determine how far in advance they responded
-      rt_col <- append (rt_col, 0-(1000-preceding_rt))
-      case <- append (case, "case 2")}
-    else {
-      # Copy the target response time of NA
-      rt_col <- append (rt_col, this_targ_rt)
-      case <- append (case, "case 3")}
+  
+  # Otherwise, if the participant responded during the stimulus preceding the target
+  else if (!is.na(structured_vl[i - 1, ] [, "v_rt"])
+           # and the preceding stimulus was not also a target
+           & !((structured_vl[i - 1, ][, "structured_targ"] == (structured_vl[i - 1, ][, "image"])))
+           #  and two stimuli prior was not also a target from the same block
+           & ! ((structured_vl[i - 2, ][, "structured_targ"] == structured_vl[i - 2, ][, "image"])
+                & floor(structured_vl[i,]$trial_num/48) == floor(structured_vl[i-2,]$trial_num/48))
+           # and the preceding stimulus came from the same block
+           & floor((structured_vl[i, ])$trial_num/48) == floor(structured_vl[i - 1, ]$trial_num/48)
+  )
+  {
+    # Count the response time as how much sooner they responded than when the stimulus was presented (anticipation)
+    svl_rt <- append(svl_rt, (structured_vl[i - 1, ][, "v_rt"] - 1000))
+    svl_case3 <- append (svl_case3, i)  }
+  
+  # Otherwise, if the participant responded during the target
+  else if (!is.na(structured_vl[i, ] [, "v_rt"])
+           # and, because structured, the previous trial had no keypress
+           &
+           (is.na(structured_vl[i - 1, ][, "v_rt"]))){
+    # Count their response time as the keypress
+    svl_rt <-
+      append(svl_rt, (structured_vl[i, ][, "v_rt"]))
+    svl_case4 <- append (svl_case4, i)
   }
-  # If the participant did not respond within 1 stimulus preceding the target, 
-  else if (is.na(structured_vl_targets[i,] [,"v_rt"])){
-    # Copy their response time of NA
-    rt_col <- append (rt_col, this_targ_rt)
-    case <- append (case, "case 4")}
-  else{
-    rt_col <- append (rt_col, "anomaly, this shouldn't happen")
-    case <- append (case, "case 5")}
+  
+  # Otherwise, if the participant responded after the target
+  else if (!is.na(structured_vl[i + 1, ]$v_rt > 0)
+           # And the following trial came from the same block
+           & floor(structured_vl[i, ]$trial_num/48) == floor(structured_vl[i + 1, ]$trial_num/48)
+           # Check that EITHER the following stimulus either was also not a target
+           & (
+             !((i + 1) %in% structured_vl_targets) |
+             # OR, if the following stimulus was also a target, that it also had a delay
+             (((i + 1) %in% structured_vl_targets) &
+              !is.na(structured_vl[i + 2, ]$v_rt) &
+              floor(structured_vl[i, ]$trial_num/48) == floor(structured_vl[i + 2, ]$trial_num/48)
+             )
+           )
+           # Also check that EITHER two stimuli following was not also a target from the same block (to avoid counting the same keypress twice)
+           &
+           (
+             !((i + 2) %in% structured_vl_targets) |
+             floor(structured_vl[i, ]$trial_num/48) == floor(structured_vl[i + 2, ]$trial_num/48) |
+             # OR, if two stimuli following was also a target (from the same block),
+             ((i + 2) %in% structured_vl_targets) &
+             floor(structured_vl[i, ]$trial_num/48) == floor(structured_vl[i + 2, ]$trial_num/48)
+             # that it also had a delay from the same block
+             &
+             !is.na(
+               structured_vl[i + 3, ]$v_rt &
+               floor(structured_vl[i, ]$trial_num/48) == floor(structured_vl[i + 3, ]$trial_num/48)
+             )
+           )) {
+    # Count their response time as how much later they responded than when the stimulus was presented
+    svl_rt <-
+      append(svl_rt, (1000 + structured_vl[i + 1, ][, "v_rt"]))
+    svl_case5 <- append (svl_case5, i)
+    
+    # Otherwise, record the miss with a reaction time of NA
+  } else {
+    svl_rt <- append(svl_rt, NA)
+    svl_case6 <- append (svl_case6, i)
+  }
 }
 
 # Match id and response times
-structured_vl_extracted <- data.frame(id, trial, target_item, trial_num_before, loop, loop_before, target_rt, rt_before, rt_col)
-
+structured_vl_extracted <- data.frame(svl_part_id, svl_rt)
 
 # Reindex the trial numbers for only trials with response times -----------------------------------------------------------------------------------------------------
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_vl_extracted$id)
+extracted_part_id <- unique(structured_vl_extracted$svl_part_id)
 
 # Find the number of targets shown to each participant
 target_sum <- NULL
-for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_vl_extracted$id==i))}
+for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_vl_extracted$svl_part_id==i))}
 
 # TEST: This should be equal to 32
 length (target_sum)
 # TEST: This should contain a vector full of 24s (if the target was not "Alien22") and 20s (if it was)
 target_sum
-
 
 # For each participant, index the targets
 targ_index <- NULL
@@ -1849,8 +1890,7 @@ for (i in target_sum) {targ_index <- append (targ_index, rep(1:i, 1))}
 structured_vl_extracted$targ_index <- targ_index
 
 # Remove any values of NA
-structured_vl_extracted <- structured_vl_extracted[!is.na(structured_vl_extracted$rt_col),]
-
+structured_vl_extracted <- structured_vl_extracted[!is.na(structured_vl_extracted$svl_rt),]
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -1859,13 +1899,13 @@ structured_vl_extracted <- structured_vl_extracted[!is.na(structured_vl_extracte
 low_hits<-NULL
 # Find people with a low hit rate
 for (id in extracted_part_id){
-  if (length(structured_vl_extracted[which(structured_vl_extracted$id==id),]$rt_col)<13)
+  if (length(structured_vl_extracted[which(structured_vl_extracted$svl_part_id==id),]$svl_rt)<13)
   {low_hits<-append(low_hits, id)}
 }
 # Remove people with low hit rate
-structured_vl_extracted <- structured_vl_extracted[! structured_vl_extracted$id %in% low_hits, ]
+structured_vl_extracted <- structured_vl_extracted[! structured_vl_extracted$svl_part_id %in% low_hits, ]
 # Find only participants with over 50% hit rate
-extracted_part_id <- unique(structured_vl_extracted$id)
+extracted_part_id <- unique(structured_vl_extracted$svl_part_id)
 
 
 # Define variables
@@ -1894,11 +1934,11 @@ for(id in extracted_part_id){
   type <- append (type, "structured")
   same_or_diff <- append (same_or_diff, "different")
   test_phase <- append (test_phase, "vsl")
-  mean_rt <- append(mean_rt, round(mean(structured_vl_extracted$rt_col[structured_vl_extracted$id==id]),digits=3))
-  number_rts <- append(number_rts, length(!is.na(structured_vl_extracted$rt_col[structured_vl_extracted$id==id])))
-  rt_slope <- append (rt_slope, round(summary(lm(structured_vl_extracted$rt_col[structured_vl_extracted$id==id]~structured_vl_extracted$targ_index[structured_vl_extracted$id==id]))$coefficient[2,1],digits = 4))
-  data_this_id <- (structured_vl_extracted[ which(structured_vl_extracted$id==id),])
-  this_range<- range(data_this_id$rt_col, na.rm = TRUE)
+  mean_rt <- append(mean_rt, round(mean(structured_vl_extracted$svl_rt[structured_vl_extracted$svl_part_id==id]),digits=3))
+  number_rts <- append(number_rts, length(!is.na(structured_vl_extracted$svl_rt[structured_vl_extracted$svl_part_id==id])))
+  rt_slope <- append (rt_slope, round(summary(lm(structured_vl_extracted$svl_rt[structured_vl_extracted$svl_part_id==id]~structured_vl_extracted$targ_index[structured_vl_extracted$svl_part_id==id]))$coefficient[2,1],digits = 4))
+  data_this_id <- (structured_vl_extracted[ which(structured_vl_extracted$svl_part_id==id),])
+  this_range<- range(data_this_id$svl_rt, na.rm = TRUE)
   range <- append (range, (this_range[2]-this_range[1]))
   upper_bound <- append (upper_bound,this_range[1])
   lower_bound <- append (lower_bound,this_range[2])
@@ -1933,6 +1973,9 @@ structured_vv$triplet <- gsub("Alien", "", structured_vv$triplet)
 # Remove the mistaken 10-21-22 triplet
 structured_vv <- (dplyr::filter(structured_vv, triplet!="10 11 22"))
 
+# Index the rows
+structured_vv <- tibble::rowid_to_column(structured_vv, "index")
+
 # Identify the rows when this condition's target was presented
 structured_vv_targets <- structured_vv[which(structured_vv$structured_targ==structured_vv$image),]
 
@@ -1949,99 +1992,130 @@ svv_line_number <- data.frame(part_id, total_lines)
 length(svv_line_number$part_id)
 # They should all contain 276 lines = 288 - (4 triplets with "10 11 22" x 3 stimuli)
 svv_line_number$total_lines
-# Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovvowing stimulus ---------------------------------------------
 
-# Set up variables to loop through participants by trials and track the target
-rt_col <- NULL
-target_rt <- NULL
-preceding_rt <- NULL
-id <- NULL
-trial <-NULL
-this_id <- NULL
-this_trial_num <- NULL
-this_loop <- NULL
-loop <- NULL
-preceding_loop <- NULL
-loop_before <- NULL
-this_targ_rt <- NULL
-rt_before <- NULL
-case <- NULL
-this_trial_before <- NULL
-this_trial_num_before <- NULL
-trial_before_df <- NULL
-trial_num_before <- NULL
-this_target_item <- NULL
-target_item <- NULL
-group <- NULL
+# Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovvowing stimulus ---------------------------------------------
+# Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
+svv_part_id <- NULL
+svv_rt <- NULL
+
+# Track the cases for calculating each type of reaction time
+# NOTE: These variables are for internal checking only and can be commented out below in case of bugs
+# Case 1: The participant responds during the target, which is the first trial in a block
+svv_case1 <- NULL
+# Case 2: The participant responds to the trial directly fovvowing the target, and the target is the first trial in a block
+svv_case2 <- NULL
+# Case 3: Anticipation of target, participant responded to stimulus directly preceding target
+svv_case3 <- NULL
+# Case 4: Response to target during the target trial
+svv_case4 <- NULL
+# Case 5: Delay from target, participant responded to stimulus directly fovvowing target
+svv_case5 <- NULL
+# Case 6: Missed target, record NA reaction time
+svv_case6 <- NULL
 
 # Isolate participants' response times.
-# Include rows when the participant responded to the stimulus preceding the target (i.e. any time that the participant pressed the button within one stimulus before the target)
-for(i in 1:nrow(structured_vv_targets)) 
-{
+
+# Include rows when the participant responded to stimuli adjacent to the target (i.e. any time that the participant pressed the button within one stimulus before or after the target)
+for (i in structured_vv_targets$index) {
   # Isolate the ID number
-  this_id <- structured_vv_targets[i,]$part_id
-  id <- append(id, paste(this_id))
-  # Isolate the trial number
-  this_trial_num <- structured_vv_targets[i,]$trial_num
-  trial <- append(trial, paste(this_trial_num))
-  # Isolate the target
-  this_target_item <- structured_vv_targets[i,]$structured_targ
-  target_item <- append(target_item, paste(this_target_item))
-  # Isolate the target's rt
-  this_targ_rt <- structured_vv_targets[i,]$v_rt
-  target_rt <- append(target_rt, paste(this_targ_rt))
-  # Isolate the loop value
-  this_loop <- structured_vv_targets[i,]$this_v_loop
-  loop <- append (loop, this_loop)
-  # Isolate the row with the preceding trial for that participant
-  this_trial_before <- structured_vv[which(structured_vv$trial_num==this_trial_num-1 & structured_vv$part_id==this_id), ][1,]
-  trial_before_df <- rbind (this_trial_before, this_trial_before)
-  this_trial_num_before <- this_trial_before$trial_num
-  trial_num_before <- append (trial_num_before, this_trial_num_before)
-  # Isolate the preceding row's this_l_loop value.
-  preceding_loop <- this_trial_before$this_v_loop
-  loop_before <- append(loop_before, preceding_loop) 
-  preceding_rt <- this_trial_before$v_rt
-  rt_before <- append (rt_before, preceding_rt)
-  group <- append(group, "same")
-  # If the participant responded while the target was presented
-  if (!is.na(structured_vv_targets[i,] [,"v_rt"])){
-    # Count their response time from the target stimulus
-    rt_col <- append (rt_col, structured_vv_targets[i,][,"v_rt"])
+  svv_part_id <-
+    append(svv_part_id, paste(structured_vv[i, ]$part_id))
+  
+  # Check if you are looking at the first trial in the block. If so, the target does not have a preceding target
+  if ((structured_vv[i, ]$trial_num %% 48 == 1)
+      # Check if the participant responded during the target trial
+      & !is.na(structured_vv[i, ]$v_rt)) {
+    # If so, count the response time from the target stimulus
+    svv_rt <- append (svv_rt, structured_vv[i, ][, "v_rt"])
+    svv_case1 <- append (svv_case1, i)
+  } 
+  
+  # If it's the first trial and there was no target keypress
+  else if (((structured_vv[i, ]$trial_num %%48 == 1) & (is.na(structured_vv[i,]$v_rt)))
+           # Check that the following stimulus was not also a target from the same block (to avoid counting the same keypress twice)
+           & !((i + 1 %in% structured_vv_targets) & floor(structured_vv[i + 1, ]$trial_num/48)== floor(structured_vv[i,]$trial_num/48))) {
+    # Then count the response time from the following stimulus
+    svv_rt <- append (svv_rt, 1000 + (structured_vv[i + 1, ][, "v_rt"]))
+    svv_case2 <- append (svv_case2, i)
   }
-  # If the participant responded during the stimulus preceding the target (implies that we are not in the first row, which would not have a preceding row)
-  else if (!is.na(this_trial_before["v_rt"])){
-    # And the preceding line is from the same block
-    if (preceding_loop==this_loop-1){
-      # Take the rt from the preceding line and subtract it from 0, to determine how far in advance they responded
-      rt_col <- append (rt_col, 0-(1000-preceding_rt))
-      case <- append (case, "case 2")}
-    else {
-      # Copy the target response time of NA
-      rt_col <- append (rt_col, this_targ_rt)
-      case <- append (case, "case 3")}
+  
+  # Otherwise, if the participant responded during the stimulus preceding the target
+  else if (!is.na(structured_vv[i - 1, ] [, "v_rt"])
+           # and the preceding stimulus was not also a target
+           & !((structured_vv[i - 1, ][, "structured_targ"] == (structured_vv[i - 1, ][, "image"])))
+           #  and two stimuli prior was not also a target from the same block
+           & ! ((structured_vv[i - 2, ][, "structured_targ"] == structured_vv[i - 2, ][, "image"])
+                & floor(structured_vv[i,]$trial_num/48) == floor(structured_vv[i-2,]$trial_num/48))
+           # and the preceding stimulus came from the same block
+           & floor((structured_vv[i, ])$trial_num/48) == floor(structured_vv[i - 1, ]$trial_num/48)
+  )
+  {
+    # Count the response time as how much sooner they responded than when the stimulus was presented (anticipation)
+    svv_rt <- append(svv_rt, (structured_vv[i - 1, ][, "v_rt"] - 1000))
+    svv_case3 <- append (svv_case3, i)  }
+  
+  # Otherwise, if the participant responded during the target
+  else if (!is.na(structured_vv[i, ] [, "v_rt"])
+           # and, because structured, the previous trial had no keypress
+           &
+           (is.na(structured_vv[i - 1, ][, "v_rt"]))){
+    # Count their response time as the keypress
+    svv_rt <-
+      append(svv_rt, (structured_vv[i, ][, "v_rt"]))
+    svv_case4 <- append (svv_case4, i)
   }
-  # If the participant did not respond within 1 stimulus preceding the target, 
-  else if (is.na(structured_vv_targets[i,] [,"v_rt"])){
-    # Copy their response time of NA
-    rt_col <- append (rt_col, this_targ_rt)
-    case <- append (case, "case 4")}
-  else{
-    rt_col <- append (rt_col, "anomaly, this shouldn't happen")
-    case <- append (case, "case 5")}
+  
+  # Otherwise, if the participant responded after the target
+  else if (!is.na(structured_vv[i + 1, ]$v_rt > 0)
+           # And the following trial came from the same block
+           & floor(structured_vv[i, ]$trial_num/48) == floor(structured_vv[i + 1, ]$trial_num/48)
+           # Check that EITHER the following stimulus either was also not a target
+           & (
+             !((i + 1) %in% structured_vv_targets) |
+             # OR, if the following stimulus was also a target, that it also had a delay
+             (((i + 1) %in% structured_vv_targets) &
+              !is.na(structured_vv[i + 2, ]$v_rt) &
+              floor(structured_vv[i, ]$trial_num/48) == floor(structured_vv[i + 2, ]$trial_num/48)
+             )
+           )
+           # Also check that EITHER two stimuli following was not also a target from the same block (to avoid counting the same keypress twice)
+           &
+           (
+             !((i + 2) %in% structured_vv_targets) |
+             floor(structured_vv[i, ]$trial_num/48) == floor(structured_vv[i + 2, ]$trial_num/48) |
+             # OR, if two stimuli following was also a target (from the same block),
+             ((i + 2) %in% structured_vv_targets) &
+             floor(structured_vv[i, ]$trial_num/48) == floor(structured_vv[i + 2, ]$trial_num/48)
+             # that it also had a delay from the same block
+             &
+             !is.na(
+               structured_vv[i + 3, ]$v_rt &
+               floor(structured_vv[i, ]$trial_num/48) == floor(structured_vv[i + 3, ]$trial_num/48)
+             )
+           )) {
+    # Count their response time as how much later they responded than when the stimulus was presented
+    svv_rt <-
+      append(svv_rt, (1000 + structured_vv[i + 1, ][, "v_rt"]))
+    svv_case5 <- append (svv_case5, i)
+    
+    # Otherwise, record the miss with a reaction time of NA
+  } else {
+    svv_rt <- append(svv_rt, NA)
+    svv_case6 <- append (svv_case6, i)
+  }
 }
 
 # Match id and response times
-structured_vv_extracted <- data.frame(id, trial, target_item, trial_num_before, loop, loop_before, target_rt, rt_before, rt_col)
+structured_vv_extracted <- data.frame(svv_part_id, svv_rt)
 
 # Reindex the trial numbers for only trials with response times -----------------------------------------------------------------------------------------------------
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_vv_extracted$id)
+extracted_part_id <- unique(structured_vv_extracted$svv_part_id)
 
 # Find the number of targets shown to each participant
 target_sum <- NULL
-for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_vv_extracted$id==i))}
+for(i in extracted_part_id){target_sum <- append(target_sum,sum(structured_vv_extracted$svv_part_id==i))}
 
 # TEST: This should be equal to 32 (for the 32 participants)
 length (target_sum)
@@ -2058,10 +2132,10 @@ structured_vv_extracted$targ_index <- targ_index
 
 # Remove any values of NA
 # NOTE: This removes sit_a_010 who has no keypresses for the target
-structured_vv_extracted <- structured_vv_extracted[!is.na(structured_vv_extracted$rt_col),]
+structured_vv_extracted <- structured_vv_extracted[!is.na(structured_vv_extracted$svv_rt),]
 
 # List unique participant IDs for this condition
-extracted_part_id <- unique(structured_vv_extracted$id)
+extracted_part_id <- unique(structured_vv_extracted$svv_part_id)
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -2069,13 +2143,14 @@ extracted_part_id <- unique(structured_vv_extracted$id)
 low_hits<-NULL
 # Find people with a low hit rate
 for (id in extracted_part_id){
-  if (length(!is.na(structured_vv_extracted[which(structured_vv_extracted$id==id),]$rt_col))<13)
+  if (length(!is.na(structured_vv_extracted[which(structured_vv_extracted$svv_part_id==id),]$svv_rt))<13)
   {low_hits<-append(low_hits, id)}
 }
+
 # Remove people with low hit rate
-structured_vv_extracted <- structured_vv_extracted[! structured_vv_extracted$id %in% low_hits, ]
+structured_vv_extracted <- structured_vv_extracted[! structured_vv_extracted$svv_part_id %in% low_hits, ]
 # Find only participants with over 50% hit rate
-extracted_part_id <- unique(structured_vv_extracted$id)
+extracted_part_id <- unique(structured_vv_extracted$svv_part_id)
 
 # Define variables
 mean_rt <- NULL
@@ -2103,11 +2178,11 @@ for(id in extracted_part_id){
   type <- append (type, "structured")
   same_or_diff <- append (same_or_diff, "same")
   test_phase <- append (test_phase, "vsl")
-  mean_rt <- append(mean_rt, round(mean(structured_vv_extracted$rt_col[structured_vv_extracted$id==id]),digits=3))
-  rt_slope <- append (rt_slope, round(summary(lm(structured_vv_extracted$rt_col[structured_vv_extracted$id==id]~structured_vv_extracted$targ_index[structured_vv_extracted$id==id]))$coefficient[2,1],digits = 4))
-  number_rts <- append(number_rts, length(!is.na(structured_vv_extracted$rt_col[structured_vv_extracted$id==id])))
-  data_this_id <- (structured_vv_extracted[ which(structured_vv_extracted$id==id),])
-  this_range<- range(data_this_id$rt_col, na.rm = TRUE)
+  mean_rt <- append(mean_rt, round(mean(structured_vv_extracted$svv_rt[structured_vv_extracted$svv_part_id==id]),digits=3))
+  rt_slope <- append (rt_slope, round(summary(lm(structured_vv_extracted$svv_rt[structured_vv_extracted$svv_part_id==id]~structured_vv_extracted$targ_index[structured_vv_extracted$svv_part_id==id]))$coefficient[2,1],digits = 4))
+  number_rts <- append(number_rts, length(!is.na(structured_vv_extracted$svv_rt[structured_vv_extracted$svv_part_id==id])))
+  data_this_id <- (structured_vv_extracted[ which(structured_vv_extracted$svv_part_id==id),])
+  this_range<- range(data_this_id$svv_rt, na.rm = TRUE)
   range <- append (range, (this_range[2]-this_range[1]))
   upper_bound <- append (upper_bound,this_range[1])
   lower_bound <- append (lower_bound,this_range[2])
