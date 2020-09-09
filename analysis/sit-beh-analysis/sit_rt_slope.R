@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Sept 9, 2020
+#  Last modified Sept 8, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -45,8 +45,12 @@ get_os <- function(){
 
 os <- get_os()
 
+# Set directory based on OS
+ifelse (os == "osx", setwd("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/"), setwd("Z:/projects/completed_projects/sit/analysis/data/clean/vocab_clean"))
+
+
 # Read in picture vocabulary scores --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-picture_vocab <- read.csv(here("../data/clean/vocab_clean/vocab_clean.csv"))
+picture_vocab <- read.csv("vocab_clean.csv")
 
 # Read in ll files and combine them into one data frame -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -164,8 +168,6 @@ vv_data$structured_targ <- gsub (".png", "", vv_data$structured_targ, ignore.cas
 vv_data$random_targ <- gsub (".bmp", "", vv_data$random_targ, ignore.case=TRUE)
 vv_data$structured_targ <- gsub (".bmp", "", vv_data$structured_targ, ignore.case=TRUE)
 
-
-# For all data, identify triplet type for each trial
 
 
 # ******************** CONDITION 1: RANDOM LL*******************
@@ -1702,23 +1704,6 @@ mean_slv_rt_slope <- mean (slv$rt_slope)
 mean_slv_rt_slope
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ******************** CONDITION 7: vl structured*******************
 
 # Separate structured and structured conditions
@@ -2333,55 +2318,70 @@ group_rt_slope <- data.frame(cbind(task, mean_rand_rt_slope, mean_struct_rt_slop
 write.csv(group_rt_slope, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_rt_slope_group.csv")
 
 # Write RT data for each individual target into one file
-random_ll_points <- dplyr::select(random_ll_extracted, id, target_item, target_rt, targ_index)
-random_ll_points$type <- "random"
-random_ll_points$domain <- "linguistic"
-random_ll_points$same_or_diff <- "same"
+random_ll_points <- random_ll_extracted %>%
+  rename("part_id" = "rll_part_id") %>%
+  rename("target_rt" = "rll_rt") %>%
+  mutate(type = "random") %>%
+  mutate(domain = "linguistic") %>%
+  mutate(same_or_diff = "same")
 
-random_lv_points <- dplyr::select(random_lv_extracted, id, target_item, target_rt, targ_index)
-random_lv_points$type <- "random"
-random_lv_points$domain <- "linguistic"
-random_lv_points$same_or_diff <- "different"
+random_lv_points <- random_lv_extracted %>%
+  rename("part_id" = "rlv_part_id") %>%
+  rename("target_rt" = "rlv_rt") %>%
+  mutate(type = "random") %>%
+  mutate(domain = "non-linguistic") %>%
+  mutate(same_or_diff = "different")
 
-random_vl_points <- dplyr::select(random_vl_extracted, id, target_item, target_rt, targ_index)
-random_vl_points$type <- "random"
-random_vl_points$domain <- "non-linguistic"
-random_vl_points$same_or_diff <- "different"
+random_vl_points <- random_vl_extracted %>%
+  rename("part_id" = "rvl_part_id") %>%
+  rename("target_rt" = "rvl_rt") %>%
+  mutate(type = "random") %>%
+  mutate(domain = "linguistic") %>%
+  mutate(same_or_diff = "different")
 
-random_vv_points <- dplyr::select(random_vv_extracted, id, target_item, target_rt, targ_index)
-random_vv_points$type <- "random"
-random_vv_points$domain <- "non-linguistic"
-random_vv_points$same_or_diff <- "same"
+random_vv_points <- random_vv_extracted %>%
+  rename("part_id" = "rvv_part_id") %>%
+  rename("target_rt" = "rvv_rt") %>%
+  mutate(type = "random") %>%
+  mutate(domain = "non-linguistic") %>%
+  mutate(same_or_diff = "same")
 
-structured_ll_points <- dplyr::select(structured_ll_extracted, id, target_item, target_rt, targ_index)
-structured_ll_points$type <- "structured"
-structured_ll_points$domain <- "linguistic"
-structured_ll_points$same_or_diff <- "same"
+structured_ll_points <- structured_ll_extracted %>%
+  rename("part_id" = "sll_part_id") %>%
+  rename("target_rt" = "sll_rt") %>%
+  mutate(type = "structured") %>%
+  mutate(domain = "linguistic") %>%
+  mutate(same_or_diff = "same")
 
-structured_lv_points <- dplyr::select(structured_lv_extracted, id, target_item, target_rt, targ_index)
-structured_lv_points$type <- "structured"
-structured_lv_points$domain <- "non-linguistic"
-structured_lv_points$same_or_diff <- "different"
+structured_lv_points <- structured_lv_extracted %>%
+  rename("part_id" = "slv_part_id") %>%
+  rename("target_rt" = "slv_rt") %>%
+  mutate(type = "structured") %>%
+  mutate(domain = "linguistic") %>%
+  mutate(same_or_diff = "different")
 
-structured_vl_points <- dplyr::select(structured_vl_extracted, id, target_item, target_rt, targ_index)
-structured_vl_points$type <- "structured"
-structured_vl_points$domain <- "linguistic"
-structured_vl_points$same_or_diff <- "different"
+structured_vl_points <- structured_vl_extracted %>%
+  rename("part_id" = "svl_part_id") %>%
+  rename("target_rt" = "svl_rt") %>%
+  mutate(type = "structured") %>%
+  mutate(domain = "non-linguistic") %>%
+  mutate(same_or_diff = "different")
 
-structured_vv_points <- dplyr::select(structured_vv_extracted, id, target_item, target_rt, targ_index)
-structured_vv_points$type <- "structured"
-structured_vv_points$domain <- "non-linguistic"
-structured_vv_points$same_or_diff <- "same"
+structured_vv_points <- structured_vv_extracted %>%
+  rename("part_id" = "svv_part_id") %>%
+  rename("target_rt" = "svv_rt") %>%
+  mutate(type = "structured") %>%
+  mutate(domain = "non-linguistic") %>%
+  mutate(same_or_diff = "same")
 
 
-# Combine group accuracies into one data frame
+# Combine individual RTs into one data frame
 indiv_rt_points <- data.frame(rbind(random_ll_points, random_lv_points, random_vv_points, random_vl_points, 
-                                    structured_ll_points, structured_lv_points, structured_vl_points, structured_vv_points))
-indiv_rt_points <- dplyr::rename(indiv_rt_points, rt = target_rt)
-indiv_rt_points <- dplyr::rename(indiv_rt_points, part_id = id)
+                                    structured_ll_points, structured_lv_points, structured_vl_points, structured_vv_points)) %>%
+  rename("rt" = "target_rt")
 
-# For mac
-# write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+if(os == "osx") {write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+  } else {write.csv(indiv_rt_points, here("../summaries/indiv_rts.csv"))}
 
-# For PC
-write.csv(indiv_rt_points, here("../summaries/indiv_rts.csv"))
+
+
