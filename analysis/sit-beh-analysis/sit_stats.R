@@ -1,7 +1,7 @@
 #  SIT STATISTICAL ANALYSIS
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi
-#  Last modified July 24th, 2020
+#  Last modified September 9th, 2020
 #  This script finds and analyzes measures of statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -15,6 +15,7 @@ if(!("reshape" %in% installed.packages())) {install.packages("reshape")}
 if(!("reshape2" %in% installed.packages())) {install.packages("reshape2")}
 if(!("car" %in% installed.packages())) {install.packages("car")}
 if(!("ez" %in% installed.packages())) {install.packages("ez")}
+if(!("afex" %in% installed.packages())) {install.packages("afex")}
 
 require("tidyverse")
 require ("lme4")
@@ -24,28 +25,45 @@ require ("reshape2")
 require("car")
 require ("ez")
 require("here")
+require("afex")
 
 rm(list=ls())
 
+# Detect OS
+get_os <- function(){
+   sysinf <- Sys.info()
+   if (!is.null(sysinf)){
+      os <- sysinf['sysname']
+      if (os == 'Darwin')
+         os <- "osx"
+   } else { ## mystery machine
+      os <- .Platform$OS.type
+      if (grepl("^darwin", R.version$os))
+         os <- "osx"
+      if (grepl("linux-gnu", R.version$os))
+         os <- "linux"
+   }
+   tolower(os)
+}
+
+os <- get_os()
 
 # ************************ SEE IF GROUPS ARE MATCHED FOR DEMOGRAPHICS WITH CHI-SQUARE TEST AND T-TESTS ************************
 
-# For Mac
-# chi_square_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_vocab_wide.csv")
-# picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
+if(os == "osx") {chi_square_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_vocab_wide.csv")
+} else { chi_square_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_vocab_wide.csv")}
 
-# For PC
-chi_square_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_vocab_wide.csv")
-picture_vocab <- read.csv("Z:/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
+if(os == "osx") {picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
+} else { picture_vocab <- read.csv("Z:/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")}
 
-rt_data <- read.csv(here("../summaries/indiv_rts.csv"))
-
+if(os == "osx") {rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+} else { rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")}
 
 # Subset only relevant data about the population
-matched_data <- chi_square_data %>% select (part_id, age, sex, score, same_or_diff)
+matched_data <- chi_square_data %>% dplyr::select (part_id, age, sex, score, same_or_diff)
 
 # Chi-square test for gender
-gender_table <- cast(matched_data,sex~same_or_diff,value = "score",length)
+gender_table <- reshape::cast(matched_data,sex~same_or_diff,value = "score",length)
 chisq.test(gender_table)
 
 # T-test for vocab score by group
@@ -55,7 +73,6 @@ t.test(score~same_or_diff, data=matched_data)
 same_vocab<- mean((filter(chi_square_data, same_or_diff=="same"))$score, na.rm=TRUE)
 diff_vocab<- mean((filter(chi_square_data, same_or_diff=="different"))$score, na.rm=TRUE)
 
-
 # T-test for age by group 
 t.test(age~same_or_diff, data=matched_data)
 
@@ -63,11 +80,7 @@ t.test(age~same_or_diff, data=matched_data)
 
 # *************************** ACCURACY ANALYSES *******************
 
-# For Mac
-# indiv_accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv")
-# For PC
-indiv_accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv")
-
+ifelse(os == "osx", indiv_accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv"), indiv_accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv"))
 
 # Separate data by task and group
 indiv_ll_accuracies <- dplyr::filter(indiv_accuracies, task =="ll")
@@ -86,21 +99,10 @@ t.test(indiv_vv_accuracies$accuracy, alternative= "greater", mu=0.5)
 t.test(indiv_lv_accuracies$accuracy, alternative= "greater", mu=0.5)
 t.test(indiv_vl_accuracies$accuracy, alternative= "greater", mu=0.5)
 
-
-# Linear mixed effects model  -------------------------------------------------------------------------------------------------------------------------------------
-
-# acc_lmer <- lmer(accuracy ~ same_or_diff + (1 | part_id), data = indiv_accuracies, REML = FALSE)
-
-
-# Task-level accuracy for both groups
-# task_acc_lmer <- lmer(accuracy ~ test_phase * same_or_diff + (1 | part_id), data = indiv_accuracies, REML = FALSE)
-# summary(task_acc_lmer)
-
-
 # Correlations for accuracy -------------------------------------------------------------------------------------------------------------------------------------
 
 # Reformat and combine relevant data from indiv_accuracies and picture_vocab
-acc_corr_data <- cast(indiv_accuracies, part_id ~ task, mean, value = 'accuracy')
+acc_corr_data <- reshape::cast(indiv_accuracies, part_id ~ task, mean, value = 'accuracy')
 acc_corr_data <- merge(acc_corr_data, picture_vocab, by = "part_id", all=TRUE)
 acc_corr_data$lsl <- ifelse(!is.na(acc_corr_data$ll), acc_corr_data$ll, acc_corr_data$lv)
 acc_corr_data$vsl <- ifelse(!is.na(acc_corr_data$vv), acc_corr_data$vv, acc_corr_data$vl)
@@ -120,89 +122,109 @@ vl_acc_corr <- cor.test(diff_acc_corr$vl, diff_acc_corr$score, alternative = "gr
 lv_acc_corr <- cor.test(diff_acc_corr$lv, diff_acc_corr$score, alternative = "greater")
 
 
+item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv")
+
+# Dummy code group so that "same" is the reference level
+item_accuracy_data$group <- ifelse(item_accuracy_data$group == "same", 0, 1)
+# Dummy code stimlus type so that "image" is the reference level
+item_accuracy_data$stimulus_type <- ifelse(item_accuracy_data$stimulus_type == "image", 0, 1)
+
+
+# Item-level glmer (both groups)
+
+# Maximal model
+item_acc_full.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id) 
+                            + (1 + group | trial), family = "binomial", data = item_accuracy_data) 
+
+summary(item_acc_full.mod) # The full model converges, but gives a singular fit (no warning), which seems to come from the by-trial random effects, so try setting those correlations to 0
+
+item_acc.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id)
+                            + (0 + group | trial) + (1|trial), family = "binomial", data = item_accuracy_data) # produces singular fit warning
+
+summary(item_acc.mod) # It looks like the singular fit comes from the correlations for by-participant random effects, so set this to 0
+
+item_acc.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (0 + stimulus_type | part_id) + (1 | part_id)
+                       + (0 + group | trial) + (1|trial), family = "binomial", data = item_accuracy_data) # It seems like there's still a singular fit warning, so try other optimizers
+
+all_fit(item_acc.mod) #nmkbw seems ok
+
+item_acc.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (0 + stimulus_type | part_id) + (1 | part_id)
+                       + (0 + group | trial) + (1|trial), family = "binomial", data = item_accuracy_data,
+                       control = glmerControl(optimizer = "nmkbw")) # This works!
+
+summary(item_acc.mod) # no issues with singularity!
+
+
+# Item-level glmer ("same" group only)
+# Maximal model
+item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id), 
+                            family = "binomial", data = filter(item_accuracy_data, group == 0)) # This converges
+summary(item_acc_same_full.mod) # No singular fit
+
+
+
+# Item-level glmer ("different" group only)
+# Maximal model
+item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id), 
+                                 family = "binomial", data = filter(item_accuracy_data, group == 1)) # This converges
+summary(item_acc_same_full.mod) # No singular fit
+
+
+# *************************** INDIVIDUAL RT ANALYSES *******************
+
+ifelse(os == "osx", indiv_rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv"), indiv_accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv"))
+
+# Dummy code group so that "same" is the reference level
+indiv_rt_data$same_or_diff <- ifelse(indiv_rt_data$same_or_diff == "same", 0, 1)
+# Dummy code stimlus type so that "image" is the reference level
+indiv_rt_data$domain <- ifelse(indiv_rt_data$domain == "non-linguistic", 0, 1)
+# Dummy code block type so that "random" is the reference level
+indiv_rt_data$type <- ifelse(indiv_rt_data$type == "random", 0, 1)
+
+rt_both_full.mod <- lmer(rt ~ 1 + same_or_diff * domain * type +
+                       (1 + domain * type | part_id), 
+                    data = indiv_rt_data, REML = FALSE) # This converges
+
+summary(rt_both_full.mod) # No singular fit!
+
+# Same group only
+rt_same_full.mod <- lmer(rt ~ 1 + domain * type +
+                       (1 + domain * type | part_id), 
+                    data = filter(indiv_rt_data, same_or_diff == 0),
+                    REML = FALSE) # converges
+summary(rt_same_full.mod) # no singularity
+
+# Different group only
+rt_different_full.mod <- lmer(rt ~ 1 + domain * type +
+                            (1 + domain * type | part_id), 
+                         data = filter(indiv_rt_data, same_or_diff == 1),
+                         REML = FALSE) # converges
+summary(rt_different_full.mod) # No singularity
 
 # *************************** RT SLOPE ANALYSES *******************
 
-# For Mac
-# indiv_rt_slope <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv")
-# For PC
-indiv_rt_slope <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv")
+ifelse(os=="osx", indiv_rt_slope <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv"),
+indiv_rt_slope <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv"))
 
 
 # Model to test effects of type (random/ structured), test phase and group (same/ different) on RT Slope----------------------
 
-# For both groups
+slope_both_full.mod <- lm (rt_slope ~ same_or_diff * domain * type, 
+                              data = indiv_rt_slope)
 
-# Full model
-# This model gives an error message that there fewer observations than random effects
-rt_slope_both.full <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 + domain * type | part_id), data = indiv_rt_slope,  REML = FALSE)
-summary(rt_slope_same.full)
+summary(slope_both_full.mod)
 
-# I simplified the random effects structure
-rt_slope_both.mod1 <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 + domain + type | part_id), data = indiv_rt_slope,  REML = FALSE)
-summary(rt_slope_both.mod1)
+slope_same_full.mod <- lm (rt_slope ~ domain * type, 
+                           data = filter(indiv_rt_slope, same_or_diff == "same"))
 
-# This model failed to converge, so here it is with increased number of iterations
-rt_slope_both.mod2 <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 + domain + type | part_id), data = indiv_rt_slope,  REML = FALSE, control = lmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
-summary(rt_slope_both.mod2)
+summary(slope_same_full.mod)
 
-# This model had a perfect correlation between random intercept of participant ID  and random slopes of domain and type
-# Here is the model with the correlation between participant intercept and domain slope removed
-rt_slope_both.mod3 <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 + type | part_id) + (0 + domain + type | part_id), data = indiv_rt_slope,  REML = FALSE, control = lmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
-summary(rt_slope_both.mod3)
+slope_different_full.mod <- lm (rt_slope ~ domain * type, 
+                           data = filter(indiv_rt_slope, same_or_diff == "different"))
 
-rt_slope_both.mod4 <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 | part_id), data = indiv_rt_slope,  REML = FALSE, control = lmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
+summary(slope_different_full.mod)
 
-
-# test for an effect of domain via a likelihood ratio test
-anova(rt_slope_both.mod2, rt_slope_both.mod3)
-
-# Since model 3 still had a perfect correlation between random intercept of participant and random slope of type, I forced that to 0 as well
-rt_slope_both.mod4 <- lmer(rt_slope ~ 1 + same_or_diff * domain * type + (1 | part_id) + (0 + type + domain | part_id), data = indiv_rt_slope,  REML = FALSE, control = lmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
-summary(rt_slope_both.mod4)
-
-
-
-
-
-
-
-# For "different" group
-rt_slope_diff.full <- lmer(rt_slope ~ 1 + domain * type + (1 + domain + type | part_id), data = filter (indiv_rt_slope, same_or_diff == "different"),  REML = FALSE)
-summary(rt_slope_diff.full)
-
-
-# Effects by group
-same_slope_data <- filter (indiv_rt_slope, same_or_diff == "same")
-diff_slope_data <- filter (indiv_rt_slope, same_or_diff == "different")
-
-same_slope_lmer <- lmer(rt_slope ~ domain * type + (1|part_id) + (1+(domain+type)|part_id), data = same_slope_data, 
-                        control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
-summary(same_slope_lmer)
-diff_slope_lmer <- lmer(rt_slope ~ domain * type + (1|part_id) + (1+(domain+type)|part_id), data = diff_slope_data, 
-                        control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
-summary(diff_slope_lmer)
-
-#same_mean_lmer <- lmer(mean_rt ~ domain * type + (1|part_id) + (1+(domain+type)|part_id), data = same_slope_data, 
-                        control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
-
-
-#diff_mean_lmer <- lmer(mean_rt ~ domain * type + (1|part_id) + (0+(domain+type)|part_id), data = diff_slope_data, 
-                       control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE), check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
-summary(diff_mean_lmer)
-
-
-
-
-
-
-
-
-accuracy_item_lmer <- glmer(corr_resp ~ 1 + stimulus_type + (1|part_id) + (0 + domain*stimulus_type|part_id) + (1| trial), family = binomial, data = acc_lmer_data,control = glmerControl(optimizer = "optimx", calc.derivs = FALSE, optCtrl = list(method = "nlminb", starttests = FALSE, kkt = FALSE),  check.conv.singular = .makeCC(action = "ignore",  tol = 1e-4)))
-
-
-
-# mean_rt_lmer <- glmer(corr_resp ~ 1 + stimulus_type + (0 + domain*stimulus_type|part_id) + (1| trial), family = binomial, data = diff_lmer_data)
+# *************************** SUMMARIZE RT SLOPE *******************
 
  # Find mean RT slope for each group and task ------------------------------------------------------------------------------------
 
@@ -215,11 +237,6 @@ mean(filter(indiv_rt_slope, type=="structured")$rt_slope)
 indiv_rt_slope %>%
   group_by(task, domain, type) %>%
   summarise(mean_rt_slope = mean(rt_slope), mean_rt_mean = paste0(round(mean(mean_rt), digits = 2)," (",round(sd(mean_rt), digits = 2),")"), n = n())
-
-# Model to test effects of type (random/ structured), test phase and group (same/ different) on reaction time ----------------------
-# indiv_rts <- dplyr::select(read.csv("Y:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv"), -X)
-# indiv_rt_lmer <- lmer(rt ~ domain * type * same_or_diff + (1 | part_id) + (1|target_item), data = indiv_rts, REML = FALSE)
-# summary(indiv_rt_lmer)
 
 
 # *************************** CORRELATIONS FOR RT SLOPE/ MEAN RT **********************************
@@ -334,9 +351,6 @@ same_lsl_diffscore_corr <- cor.test(same_rtm_corr$lsl_diffscore, same_rtm_corr$s
 # diff_rand_avg_rtm_corr <- cor.test(diff_rtm_corr$rand_avg, diff_rtm_corr$score)
 # diff_struct_avg_rtm_corr <- cor.test(diff_rtm_corr$struct_avg, diff_rtm_corr$score)
 # same_rand_avg_rtm_corr <- cor.test(same_rtm_corr$rand_avg, same_rtm_corr$score)
-
-
-
 
 
 
