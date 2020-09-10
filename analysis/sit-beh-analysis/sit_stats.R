@@ -116,11 +116,16 @@ lsl_acc_corr <- cor.test(acc_corr_data$lsl, acc_corr_data$score)
 # Correlations by group
 same_acc_corr <- dplyr::select(dplyr::filter(acc_corr_data, same_or_diff == "same"), ll, vv, score)
 diff_acc_corr <- dplyr::select(dplyr::filter(acc_corr_data, same_or_diff == "different"), lv, vl, score)
-ll_acc_corr <- cor.test(same_acc_corr$ll, same_acc_corr$score, alternative = "greater")
-vv_acc_corr <- cor.test(same_acc_corr$vv, same_acc_corr$score, alternative = "greater")
-vl_acc_corr <- cor.test(diff_acc_corr$vl, diff_acc_corr$score, alternative = "greater")
-lv_acc_corr <- cor.test(diff_acc_corr$lv, diff_acc_corr$score, alternative = "greater")
 
+ll_acc_corr <- cor.test(same_acc_corr$ll, same_acc_corr$score, alternative = "greater")
+ll_acc_corr
+vv_acc_corr <- cor.test(same_acc_corr$vv, same_acc_corr$score, alternative = "greater")
+vv_acc_corr
+
+vl_acc_corr <- cor.test(diff_acc_corr$vl, diff_acc_corr$score, alternative = "greater")
+vl_acc_corr
+lv_acc_corr <- cor.test(diff_acc_corr$lv, diff_acc_corr$score, alternative = "greater")
+lv_acc_corr
 
 item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv")
 
@@ -157,15 +162,17 @@ summary(item_acc.mod) # no issues with singularity!
 
 # Item-level glmer ("same" group only)
 # Maximal model
-item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id), 
+item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id) + (1 | trial), 
                             family = "binomial", data = filter(item_accuracy_data, group == 0)) # This converges
 summary(item_acc_same_full.mod) # No singular fit
+
+sjPlot::tab_model(item_acc_same_full.mod)
 
 
 
 # Item-level glmer ("different" group only)
 # Maximal model
-item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id), 
+item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id) + (1 | trial), 
                                  family = "binomial", data = filter(item_accuracy_data, group == 1)) # This converges
 summary(item_acc_same_full.mod) # No singular fit
 
@@ -214,10 +221,14 @@ slope_both_full.mod <- lm (rt_slope ~ same_or_diff * domain * type,
 
 summary(slope_both_full.mod)
 
+sjPlot::tab_model(slope_both_full.mod)
+
 slope_same_full.mod <- lm (rt_slope ~ domain * type, 
                            data = filter(indiv_rt_slope, same_or_diff == "same"))
 
 summary(slope_same_full.mod)
+sjPlot::tab_model(slope_same_full.mod)
+
 
 slope_different_full.mod <- lm (rt_slope ~ domain * type, 
                            data = filter(indiv_rt_slope, same_or_diff == "different"))
@@ -245,7 +256,7 @@ indiv_rt_slope %>%
 # RT Slope Correlation matrices-------------------------------------------------------------------------------------------------------------------------------------
 
 # Extract relevant data from indiv_rt_slope and picture_vocab
-slope_corr_data <- cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'rt_slope')
+slope_corr_data <- reshape::cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'rt_slope')
 slope_corr_data <- merge(slope_corr_data, picture_vocab, by = "part_id", all=TRUE)
 
 slope_corr_data$rand_lsl <- ifelse(!is.na(slope_corr_data$ll_random), slope_corr_data$ll_random, slope_corr_data$lv_random)
@@ -266,22 +277,45 @@ lsl_diffscore_slope_corr <- cor.test(slope_corr_data$lsl_diffscore, slope_corr_d
 same_slope_corr <- dplyr::select(dplyr::filter(slope_corr_data, group == "same"), part_id, ll_random, ll_structured, vv_random, vv_structured, vsl_diffscore, lsl_diffscore, score)
 diff_slope_corr <- dplyr::select(dplyr::filter(slope_corr_data, group == "different"), part_id, lv_random, lv_structured, vl_random, vl_structured, vsl_diffscore, lsl_diffscore, score)
 
+
 ll_struct_slope_corr <- cor.test(same_slope_corr$ll_structured, same_slope_corr$score, alternative = "less")
+ll_struct_slope_corr
 vv_struct_slope_corr <- cor.test(same_slope_corr$vv_structured, same_slope_corr$score, alternative = "less")
+vv_struct_slope_corr
+
 vl_struct_slope_corr <- cor.test(diff_slope_corr$vl_structured, diff_slope_corr$score, alternative = "less")
+vl_struct_slope_corr
 lv_struct_slope_corr <- cor.test(diff_slope_corr$lv_structured, diff_slope_corr$score, alternative = "less")
+lv_struct_slope_corr
 
 diff_vsl_diffscore_corr <- cor.test(diff_slope_corr$vsl_diffscore, diff_slope_corr$score, alternative = "less")
+diff_vsl_diffscore_corr
 diff_lsl_diffscore_corr <- cor.test(diff_slope_corr$lsl_diffscore, diff_slope_corr$score, alternative = "less")
+diff_lsl_diffscore_corr
 
 same_vsl_diffscore_corr <- cor.test(same_slope_corr$vsl_diffscore, same_slope_corr$score, alternative = "less")
+same_vsl_diffscore_corr
 same_lsl_diffscore_corr <- cor.test(same_slope_corr$lsl_diffscore, same_slope_corr$score, alternative = "less")
+same_lsl_diffscore_corr
+
+
+
+# Check for any correlation between RT slope diff and accuracy
+
+slope_acc <- full_join (select(slope_corr_data, part_id, vsl_diffscore, lsl_diffscore, score), select (acc_corr_data, part_id, lsl, vsl), by ="part_id") %>%
+   rename ("lsl_acc" = "lsl") %>%
+   rename ("vsl_acc" = "vsl") %>%
+   rename ("vocab" = "score") 
+
+
+cor.test (slope_acc$lsl_diffscore, slope_acc$lsl_acc)
+cor.test (slope_acc$vsl_diffscore, slope_acc$vsl_acc)
 
 
 # Mean RT Correlation matrices-------------------------------------------------------------------------------------------------------------------------------------
 
 # Extract relevant data from indiv_rt_slope and picture_vocab
-rtm_corr_data <- cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'mean_rt')
+rtm_corr_data <- reshape::cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'mean_rt')
 rtm_corr_data <- merge(rtm_corr_data, picture_vocab, by = "part_id", all=TRUE)
 
 rtm_corr_data$rand_lsl <- ifelse(!is.na(rtm_corr_data$ll_random), rtm_corr_data$ll_random, rtm_corr_data$lv_random)
@@ -296,23 +330,33 @@ rtm_corr_data <- mutate(rtm_corr_data, lsl_diffscore = ifelse(group == "differen
 struct_vsl_rtm_corr <- cor.test(rtm_corr_data$struct_vsl, rtm_corr_data$score, alternative = "less")
 struct_lsl_rtm_corr <- cor.test(rtm_corr_data$struct_lsl, rtm_corr_data$score, alternative = "less")
 vsl_diffscore_rtm_corr <- cor.test(rtm_corr_data$vsl_diffscore, rtm_corr_data$score)
+vsl_diffscore_rtm_corr
 lsl_diffscore_rtm_corr <- cor.test(rtm_corr_data$lsl_diffscore, rtm_corr_data$score)
-
+lsl_diffscore_rtm_corr
 
 # Correlations by group
 same_rtm_corr <- dplyr::select(dplyr::filter(rtm_corr_data, group == "same"), part_id, ll_random, ll_structured, vv_random, vv_structured, vsl_diffscore, lsl_diffscore, score)
 diff_rtm_corr <- dplyr::select(dplyr::filter(rtm_corr_data, group == "different"), part_id, lv_random, lv_structured, vl_random, vl_structured, vsl_diffscore, lsl_diffscore, score)
 
 ll_struct_rtm_corr <- cor.test(same_rtm_corr$ll_structured, same_rtm_corr$score, alternative = "less")
+ll_struct_rtm_corr
 vv_struct_rtm_corr <- cor.test(same_rtm_corr$vv_structured, same_rtm_corr$score, alternative = "less")
+vv_struct_rtm_corr
+
 vl_struct_rtm_corr <- cor.test(diff_rtm_corr$vl_structured, diff_rtm_corr$score, alternative = "less")
+vl_struct_rtm_corr
 lv_struct_rtm_corr <- cor.test(diff_rtm_corr$lv_structured, diff_rtm_corr$score, alternative = "less")
+lv_struct_rtm_corr
 
 diff_vsl_diffscore_corr <- cor.test(diff_rtm_corr$vsl_diffscore, diff_rtm_corr$score, alternative = "less")
+diff_vsl_diffscore_corr
 diff_lsl_diffscore_corr <- cor.test(diff_rtm_corr$lsl_diffscore, diff_rtm_corr$score, alternative = "less")
+diff_lsl_diffscore_corr
 
 same_vsl_diffscore_corr <- cor.test(same_rtm_corr$vsl_diffscore, same_rtm_corr$score, alternative = "less")
+same_vsl_diffscore_corr 
 same_lsl_diffscore_corr <- cor.test(same_rtm_corr$lsl_diffscore, same_rtm_corr$score, alternative = "less")
+same_lsl_diffscore_corr 
 
 
 
@@ -365,7 +409,7 @@ same_lsl_diffscore_corr <- cor.test(same_rtm_corr$lsl_diffscore, same_rtm_corr$s
 # RT Slope Correlation matrices-------------------------------------------------------------------------------------------------------------------------------------
  
 # Extract relevant data from indiv_rt_slope and picture_vocab
-slope_corr_data <- cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'rt_slope')
+slope_corr_data <- reshape::cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'rt_slope')
 slope_corr_data <- merge(slope_corr_data, picture_vocab, by = "part_id", all=TRUE)
 
 slope_corr_data$lsl_rand <- ifelse(!is.na(slope_corr_data$ll_random), slope_corr_data$ll_random, slope_corr_data$lv_random)
@@ -391,55 +435,60 @@ all_same <- filter(slope_corr_data, group=="same")
 all_diff <- filter(slope_corr_data, group=="different")
 
 # Test correlations for different condition: these are the individual rt slopes against vocab
-#lv_corr<-cor.test(slope_corr_data$lv,slope_corr_data$score)
-#lv_corr
+lv_corr<-cor.test(slope_corr_data$lv_structured, slope_corr_data$score)
+lv_corr
 
-#vl_corr<-cor.test(slope_corr_data$vl,slope_corr_data$score)
-#vl_corr
+vl_corr<-cor.test(slope_corr_data$vl_structured,slope_corr_data$score)
+vl_corr
 
 # Test correlations for same condition
-#ll_corr<-cor.test(slope_corr_data$ll,slope_corr_data$score)
-#ll_corr
+ll_corr<-cor.test(slope_corr_data$ll_structured,slope_corr_data$score)
+ll_corr
 
-#vv_corr<-cor.test(slope_corr_data$vv,slope_corr_data$score)
-#vv_corr
+vv_corr<-cor.test(slope_corr_data$vv_structured,slope_corr_data$score)
+vv_corr
 
 # calculate the difference scores between structured condition and random condition within linguistic and non-linguistic domains.
-rt_slope_diff = cast(indiv_rt_slope,part_id+same_or_diff+domain~type,value = "rt_slope")
+rt_slope_diff = reshape::cast(indiv_rt_slope,part_id+same_or_diff+domain~type,value = "rt_slope")
 rt_slope_diff$slope_diff = rt_slope_diff$structured-rt_slope_diff$random
 rt_slope_diff = merge(rt_slope_diff,picture_vocab,id=1)
-rt_slope_diff = cast(rt_slope_diff,part_id+score+same_or_diff~domain,value="slope_diff")
+rt_slope_diff = reshape::cast(rt_slope_diff,part_id+score+same_or_diff~domain,value="slope_diff")
 
-#Test for correlation between RT slope and vocab
+#Test for correlation between RT slope difference and vocab
 cor.test(rt_slope_diff$linguistic,rt_slope_diff$score)
 cor.test(rt_slope_diff$`non-linguistic`,rt_slope_diff$score)
 
-
-# RT slope difference
-rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="diff")
-rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
- 
-# Test the correlation between the same condition's difference scores and vocabulary 
-rt_slope_diff_same = subset(rt_slope_diff,same_or_diff=="same")
-rt_slope_diff_same_complete = rt_slope_diff_same[complete.cases(rt_slope_diff_same),]
-cor.test(rt_slope_diff_same_complete$linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson")
-
-colnames(rt_slope_diff_same_complete)[5] <- "non_linguistic"
-cor.test(rt_slope_diff_same_complete$non_linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson") 
-
-# Test the correlation between the different condition's difference scores and vocabulary 
-rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="different")
-rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
-cor.test(rt_slope_diff_diff_complete$linguistic,rt_slope_diff_diff_complete$score,alternative = "less", method="pearson")
+#Test for correlation between RT slope difference and vocab
+cor.test(filter(rt_slope_diff, same_or_diff == "same")$linguistic,filter(rt_slope_diff, same_or_diff == "same")$score)
+cor.test(filter(rt_slope_diff, same_or_diff == "same")$`non-linguistic`,filter(rt_slope_diff, same_or_diff == "same")$score)
 
 
-vocab_corr<- rt_slope_diff_diff_complete
-vocab_corr <- dplyr::rename(vocab_corr, image = `non-linguistic`)
-vocab_corr <- dplyr::rename(vocab_corr, letter = linguistic)
-vocab_corr <- dplyr::rename(vocab_corr, group = same_or_diff)
-vocab_corr <- melt(data = data.frame(vocab_corr), id.vars = c("part_id", "group", "score"), measure.vars = c("image", "letter"))
-vocab_corr <- dplyr::rename(vocab_corr, rt_slope_diff = value)
-vocab_corr <- dplyr::rename(vocab_corr, Stimulus = variable)
+
+# # RT slope difference
+# rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="diff")
+# rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
+#  
+# # Test the correlation between the same condition's difference scores and vocabulary 
+# rt_slope_diff_same = subset(rt_slope_diff,same_or_diff=="same")
+# rt_slope_diff_same_complete = rt_slope_diff_same[complete.cases(rt_slope_diff_same),]
+# cor.test(rt_slope_diff_same_complete$linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson")
+# 
+# colnames(rt_slope_diff_same_complete)[5] <- "non_linguistic"
+# cor.test(rt_slope_diff_same_complete$non_linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson") 
+# 
+# # Test the correlation between the different condition's difference scores and vocabulary 
+# rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="different")
+# rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
+# cor.test(rt_slope_diff_diff_complete$linguistic,rt_slope_diff_diff_complete$score,alternative = "less", method="pearson")
+# 
+# 
+# vocab_corr<- rt_slope_diff_diff_complete
+# vocab_corr <- dplyr::rename(vocab_corr, image = `non-linguistic`)
+# vocab_corr <- dplyr::rename(vocab_corr, letter = linguistic)
+# vocab_corr <- dplyr::rename(vocab_corr, group = same_or_diff)
+# vocab_corr <- melt(data = data.frame(vocab_corr), id.vars = c("part_id", "group", "score"), measure.vars = c("image", "letter"))
+# vocab_corr <- dplyr::rename(vocab_corr, rt_slope_diff = value)
+# vocab_corr <- dplyr::rename(vocab_corr, Stimulus = variable)
 
 # Plot vocabulary correlation
 ggplot(data=vocab_corr, aes(x=rt_slope_diff,y=score,color=Stimulus, shape=Stimulus)) + 
@@ -545,9 +594,10 @@ cor.test(rt_diff_diff$non_linguistic,rt_diff_diff$score, alternative = "less", m
 # #  ************* SEE WHETHER RT slope is below zero: T-TESTS *************
 
 sll <- filter (indiv_rt_slope, type =="structured" &  task == "ll")
+svv <- filter (indiv_rt_slope, type =="structured" &  task == "vv")
 slv <- filter (indiv_rt_slope, type =="structured" &  task == "lv")
 svl <- filter (indiv_rt_slope, type =="structured" &  task == "vl")
-svv <- filter (indiv_rt_slope, type =="structured" &  task == "vv")
+
 rll <- filter (indiv_rt_slope, type =="random" &  task == "ll")
 rlv <- filter (indiv_rt_slope, type =="random" &  task == "lv")
 rvl <- filter (indiv_rt_slope, type =="random" &  task == "vl")
@@ -589,10 +639,7 @@ summary(rt_same.full)
 # For different group only
 
 # Maximal model:
-# This model fails to converge
-rt_diff_full <- lmer(rt ~ 1 + domain * type + (1 + domain * type | part_id), data = filter(rt_data, same_or_diff == "different"),  REML = FALSE)
-
-rt_diff_mod <- lmer(rt ~ 1 + domain * type + (1 + domain * type | part_id), data = filter(rt_data, same_or_diff == "different"),  REML = FALSE, control = lmerControl (optimizer = "bobyqa", optCtrl = list(maxfun=1e9)))
-summary(rt_diff_mod)
+rt_diff.full <- lmer(rt ~ 1 + domain * type + (1 + domain * type | part_id), data = filter(rt_data, same_or_diff == "different"),  REML = FALSE)
+summary(rt_diff.full)
 
 
