@@ -174,16 +174,15 @@ vv_data$structured_targ <- gsub (".bmp", "", vv_data$structured_targ, ignore.cas
 
 
 # Separate random condition
-random_ll <- ll_data[ which(ll_data$condition== "R"),]
-# Index the rows
-random_ll <- tibble::rowid_to_column(random_ll, "index")
+random_ll <- filter(ll_data, condition== "R") %>%
+  tibble::rowid_to_column("index")
 
 ## Index the targets -----------------------------------------------
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding stimulus ---------------------------------------------
 
 # Identify the rows when this condition's target was presented
-random_ll_targets <- random_ll[which(random_ll$random_targ==random_ll$image),]
+random_ll_targets <- filter(random_ll, random_targ==image)
 
 # Find all the participant IDs
 list_part_id <- distinct(random_ll_targets, part_id)
@@ -379,6 +378,9 @@ random_ll_extracted$targ_index <- targ_index
 
 # Remove any values of NA
 random_ll_extracted <- random_ll_extracted[!is.na(random_ll_extracted$rll_rt),]
+
+# Add the target 
+random_ll_extracted <- left_join(random_ll_extracted, rll_targs, by = c("rll_part_id" = "part_id"))
 
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
@@ -2391,6 +2393,8 @@ indiv_rt_points <- data.frame(rbind(random_ll_points, random_lv_points, random_v
 
 if(os == "osx") {write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
   } else {write.csv(indiv_rt_points, here("../summaries/indiv_rts.csv"))}
+
+
 
 
 
