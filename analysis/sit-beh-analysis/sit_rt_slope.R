@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Sept 9, 2020
+#  Last modified Nov 14, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -185,19 +185,28 @@ random_ll <- tibble::rowid_to_column(random_ll, "index")
 # Identify the rows when this condition's target was presented
 random_ll_targets <- random_ll[which(random_ll$random_targ==random_ll$image),]
 
-# TEST: Create a data frame to check the number of lines per participant
-list_part_id <- unique(random_ll_targets$part_id)
-part_id <- NULL
-total_lines <- NULL
-for(id in list_part_id){
-  part_id <- append(part_id, id)
-  total_lines <- append(total_lines, nrow(random_ll_targets[which(random_ll$part_id==id),]))
-}
-rll_line_number <- data.frame(part_id, total_lines)
-# TEST: There should be 32 entries
-length(rll_line_number$part_id)
-# TEST: They should all contain 288 lines
-rll_line_number$total_lines
+# Find all the participant IDs
+list_part_id <- distinct(random_ll_targets, part_id)
+
+# There should be 32 participants
+nrow(list_part_id)
+
+# Each participant should have 288 lines — if not, identify the participant
+random_ll %>% 
+  group_by(part_id) %>%
+  summarise(n = n()) %>%
+  filter (n != 288)
+
+# Each participant should have 24 targets — if not, identify the participant
+random_ll_targets %>% 
+  group_by(part_id) %>%
+  summarise(n = n()) %>%
+  filter (n != 24)
+
+# Identify the random target for each participant
+rll_targs <- distinct(random_ll_targets %>%
+  group_by(part_id) %>%
+  summarise(random_targ = random_targ))
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ following stimulus ---------------------------------------------
 
