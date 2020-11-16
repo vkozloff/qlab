@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Nov 14, 2020
+#  Last modified Nov 15, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -366,6 +366,7 @@ for(i in extracted_part_id){target_sum <- append(target_sum,sum(random_ll_extrac
 
 # TEST: This should be equal to 32
 length (target_sum)
+
 # TEST: This should contain a vector full of 24s
 target_sum
 
@@ -459,7 +460,6 @@ random_lv <- tibble::rowid_to_column(random_lv, "index")
 # Identify the rows when this condition's target was presented
 random_lv_targets <- random_lv[which(random_lv$random_targ==random_lv$image),]
 
-
 # TEST: Create a data frame to check the number of lines per participant
 list_part_id <- unique(random_lv_targets$part_id)
 part_id <- NULL
@@ -474,6 +474,10 @@ length(rlv_line_number$part_id)
 # TEST: They should all contain 288 lines
 rlv_line_number$total_lines
 
+# Identify the random target for each participant
+rlv_targs <- distinct(random_lv_targets %>%
+                        group_by(part_id) %>%
+                        summarise(random_targ = random_targ))
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ following stimulus ---------------------------------------------
 
@@ -646,6 +650,8 @@ random_lv_extracted$targ_index <- targ_index
 # Remove any values of NA
 random_lv_extracted <- random_lv_extracted[!is.na(random_lv_extracted$rlv_rt),]
 
+# Add the target 
+random_lv_extracted <- left_join(random_lv_extracted, rlv_targs, by = c("rlv_part_id" = "part_id"))
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -736,6 +742,10 @@ length(rvl_line_number$part_id)
 # They should all contain 288 lines
 rvl_line_number$total_lines
 
+# Identify the random target for each participant
+rvl_targs <- distinct(random_vl_targets %>%
+                        group_by(part_id) %>%
+                        summarise(random_targ = random_targ))
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovlowing stimulus ---------------------------------------------
 # Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
@@ -908,6 +918,9 @@ random_vl_extracted$targ_index <- targ_index
 # Remove any values of NA
 random_vl_extracted <- random_vl_extracted[!is.na(random_vl_extracted$rvl_rt),]
 
+# Add the target 
+random_vl_extracted <- left_join(random_vl_extracted, rvl_targs, by = c("rvl_part_id" = "part_id"))
+
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -1000,6 +1013,12 @@ rvv_line_number <- data.frame(part_id, total_lines)
 length(rvv_line_number$part_id)
 # They should all contain 288 lines
 rvv_line_number$total_lines
+
+# Identify the random target for each participant
+rvv_targs <- distinct(random_vv_targets %>%
+                        group_by(part_id) %>%
+                        summarise(random_targ = random_targ))
+
 
 # Identify response times to target stimuli. Include times when participant responded while target was displayed, or during preceding/ fovlowing stimulus ---------------------------------------------
 # Initialize variables to track participant ID, condition, modality, task, and reaction time (RT)
@@ -1174,6 +1193,9 @@ random_vv_extracted$targ_index <- targ_index
 # We do this a second time here to remove any participants who did not respond during the trial.
 random_vv_extracted <- random_vv_extracted[!is.na(random_vv_extracted$rvv_rt),]
 
+# Add the target 
+random_vv_extracted <- left_join(random_vv_extracted, rvv_targs, by = c("rvv_part_id" = "part_id"))
+
 # List unique participant IDs for this condition
 extracted_part_id <- unique(random_vv_extracted$rvv_part_id)
 
@@ -1251,6 +1273,11 @@ structured_ll$triplet <- rep (do.call(paste, as.data.frame(t(matrix(structured_l
 
 # Identify the rows when this condition's target was presented
 structured_ll_targets <- structured_ll[which(structured_ll$structured_targ==structured_ll$image),]
+
+# Identify the structured target for each participant
+sll_targs <- distinct(structured_ll_targets %>%
+                        group_by(part_id) %>%
+                        summarise(structured_targ = structured_targ))
 
 # TEST: Create a data frame to check the number of lines per participant
 list_part_id <- unique(structured_ll_targets$part_id)
@@ -1406,6 +1433,9 @@ structured_ll_extracted$targ_index <- targ_index
 # Remove any values of NA
 structured_ll_extracted <- structured_ll_extracted[!is.na(structured_ll_extracted$sll_rt),]
 
+# Add the target 
+structured_ll_extracted <- left_join(structured_ll_extracted, sll_targs, by = c("sll_part_id" = "part_id"))
+
 # List unique participant IDs for this condition
 extracted_part_id <- unique(structured_ll_extracted$sll_part_id)
 
@@ -1488,6 +1518,11 @@ structured_lv$triplet <- rep (do.call(paste, as.data.frame(t(matrix(structured_l
 
 # Identify the rows when this condition's target was presented
 structured_lv_targets <- structured_lv[which(structured_lv$structured_targ==structured_lv$image),]
+
+# Identify the structured target for each participant
+slv_targs <- distinct(structured_lv_targets %>%
+                        group_by(part_id) %>%
+                        summarise(structured_targ = structured_targ))
 
 # TEST: Create a data frame to check the number of lines per participant
 list_part_id <- unique(structured_lv_targets$part_id)
@@ -1645,6 +1680,8 @@ structured_lv_extracted$targ_index <- targ_index
 # Remove any values of NA
 structured_lv_extracted <- structured_lv_extracted[!is.na(structured_lv_extracted$slv_rt),]
 
+# Add the target 
+structured_lv_extracted <- left_join(structured_lv_extracted, slv_targs, by = c("slv_part_id" = "part_id"))
 
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
@@ -1732,6 +1769,12 @@ structured_vl <- tibble::rowid_to_column(structured_vl, "index")
 
 # Identify the rows when this condition's target was presented
 structured_vl_targets <- structured_vl[which(structured_vl$structured_targ==structured_vl$image),]
+
+# Identify the structured target for each participant
+svl_targs <- distinct(structured_vl_targets %>%
+                        group_by(part_id) %>%
+                        summarise(structured_targ = structured_targ))
+
 
 ## Index the images by structured/ structured-----------------------------------------------
 
@@ -1888,6 +1931,10 @@ structured_vl_extracted$targ_index <- targ_index
 # Remove any values of NA
 structured_vl_extracted <- structured_vl_extracted[!is.na(structured_vl_extracted$svl_rt),]
 
+# Add the target 
+structured_vl_extracted <- left_join(structured_vl_extracted, svl_targs, by = c("svl_part_id" = "part_id"))
+
+
 # Calculate mean rt and rt_slope  -----------------------------------------------------------------------------------------------------
 
 # Each participant should have seen 24 targets total (though some saw only 20).
@@ -1974,6 +2021,11 @@ structured_vv <- tibble::rowid_to_column(structured_vv, "index")
 
 # Identify the rows when this condition's target was presented
 structured_vv_targets <- structured_vv[which(structured_vv$structured_targ==structured_vv$image),]
+
+# Identify the structured target for each participant
+svv_targs <- distinct(structured_vv_targets %>%
+                        group_by(part_id) %>%
+                        summarise(structured_targ = structured_targ))
 
 # TEST: Create a data frame to check the number of lines per participant
 list_part_id <- unique(structured_vv_targets$part_id)
@@ -2129,6 +2181,9 @@ structured_vv_extracted$targ_index <- targ_index
 # Remove any values of NA
 # NOTE: This removes sit_a_010 who has no keypresses for the target
 structured_vv_extracted <- structured_vv_extracted[!is.na(structured_vv_extracted$svv_rt),]
+
+# Add the target 
+structured_vv_extracted <- left_join(structured_vv_extracted, svv_targs, by = c("svv_part_id" = "part_id"))
 
 # List unique participant IDs for this condition
 extracted_part_id <- unique(structured_vv_extracted$svv_part_id)
@@ -2330,57 +2385,65 @@ write.csv(group_rt_slope, "/Volumes/data/projects/completed_projects/sit/analysi
 
 # Write RT data for each individual target into one file
 random_ll_points <- random_ll_extracted %>%
-  rename("part_id" = "rll_part_id") %>%
-  rename("target_rt" = "rll_rt") %>%
+  dplyr::rename("part_id" = "rll_part_id") %>%
+  dplyr::rename("target_rt" = "rll_rt") %>%
+  dplyr::rename("target" = "random_targ") %>%
   mutate(type = "random") %>%
   mutate(domain = "linguistic") %>%
   mutate(same_or_diff = "same")
 
 random_lv_points <- random_lv_extracted %>%
-  rename("part_id" = "rlv_part_id") %>%
-  rename("target_rt" = "rlv_rt") %>%
+  dplyr::rename("part_id" = "rlv_part_id") %>%
+  dplyr::rename("target_rt" = "rlv_rt") %>%
+  dplyr::rename("target" = "random_targ") %>%
   mutate(type = "random") %>%
   mutate(domain = "non-linguistic") %>%
   mutate(same_or_diff = "different")
 
 random_vl_points <- random_vl_extracted %>%
-  rename("part_id" = "rvl_part_id") %>%
-  rename("target_rt" = "rvl_rt") %>%
+  dplyr::rename("part_id" = "rvl_part_id") %>%
+  dplyr::rename("target_rt" = "rvl_rt") %>%
+  dplyr::rename("target" = "random_targ") %>%
   mutate(type = "random") %>%
   mutate(domain = "linguistic") %>%
   mutate(same_or_diff = "different")
 
 random_vv_points <- random_vv_extracted %>%
-  rename("part_id" = "rvv_part_id") %>%
-  rename("target_rt" = "rvv_rt") %>%
+  dplyr::rename("part_id" = "rvv_part_id") %>%
+  dplyr::rename("target_rt" = "rvv_rt") %>%
+  dplyr::rename("target" = "random_targ") %>%
   mutate(type = "random") %>%
   mutate(domain = "non-linguistic") %>%
   mutate(same_or_diff = "same")
 
 structured_ll_points <- structured_ll_extracted %>%
-  rename("part_id" = "sll_part_id") %>%
-  rename("target_rt" = "sll_rt") %>%
+  dplyr::rename("part_id" = "sll_part_id") %>%
+  dplyr::rename("target_rt" = "sll_rt") %>%
+  dplyr::rename("target" = "structured_targ") %>%
   mutate(type = "structured") %>%
   mutate(domain = "linguistic") %>%
   mutate(same_or_diff = "same")
 
 structured_lv_points <- structured_lv_extracted %>%
-  rename("part_id" = "slv_part_id") %>%
-  rename("target_rt" = "slv_rt") %>%
+  dplyr::rename("part_id" = "slv_part_id") %>%
+  dplyr::rename("target_rt" = "slv_rt") %>%
+  dplyr::rename("target" = "structured_targ") %>%
   mutate(type = "structured") %>%
   mutate(domain = "linguistic") %>%
   mutate(same_or_diff = "different")
 
 structured_vl_points <- structured_vl_extracted %>%
-  rename("part_id" = "svl_part_id") %>%
-  rename("target_rt" = "svl_rt") %>%
+  dplyr::rename("part_id" = "svl_part_id") %>%
+  dplyr::rename("target_rt" = "svl_rt") %>%
+  dplyr::rename("target" = "structured_targ") %>%
   mutate(type = "structured") %>%
   mutate(domain = "non-linguistic") %>%
   mutate(same_or_diff = "different")
 
 structured_vv_points <- structured_vv_extracted %>%
-  rename("part_id" = "svv_part_id") %>%
-  rename("target_rt" = "svv_rt") %>%
+  dplyr::rename("part_id" = "svv_part_id") %>%
+  dplyr::rename("target_rt" = "svv_rt") %>%
+  dplyr::rename("target" = "structured_targ") %>%
   mutate(type = "structured") %>%
   mutate(domain = "non-linguistic") %>%
   mutate(same_or_diff = "same")
@@ -2389,12 +2452,10 @@ structured_vv_points <- structured_vv_extracted %>%
 # Combine individual RTs into one data frame
 indiv_rt_points <- data.frame(rbind(random_ll_points, random_lv_points, random_vv_points, random_vl_points, 
                                     structured_ll_points, structured_lv_points, structured_vl_points, structured_vv_points)) %>%
-  rename("rt" = "target_rt")
+  dplyr::rename("rt" = "target_rt")
 
 if(os == "osx") {write.csv(indiv_rt_points, "/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
   } else {write.csv(indiv_rt_points, here("../summaries/indiv_rts.csv"))}
-
-
 
 
 
