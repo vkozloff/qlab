@@ -1,7 +1,7 @@
 #  SIT PLOTTING
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi and An Nguyen
-#  Last modified February 27th, 2020
+#  Last modified December 22nd, 2020
 #  This script creates visualizations for accuracy and reaction time
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -9,19 +9,43 @@
 # ************ PLOT MEAN ACCURACY BY TASK AND GROUP ************ 
 
 
-install.packages("afex")
-install.packages("ggplot2")
-install.packages("cowplot")
-install.packages("emmeans")
-install.packages("doBy")
+# install.packages("afex")
+# install.packages("ggplot2")
+# install.packages("cowplot")
+# install.packages("emmeans")
+# install.packages("doBy")
 library("afex")     
-library("ggplot2")  
+require("ggplot2")  
 library("cowplot")
 library("doBy")
-theme_set(theme_grey())
+
+# Remove objects in environment
+rm(list=ls())
+
+ggplot2::theme_set(theme_grey())
+
+# Detect OS
+get_os <- function(){
+  sysinf <- Sys.info()
+  if (!is.null(sysinf)){
+    os <- sysinf['sysname']
+    if (os == 'Darwin')
+      os <- "osx"
+  } else { ## mystery machine
+    os <- .Platform$OS.type
+    if (grepl("^darwin", R.version$os))
+      os <- "osx"
+    if (grepl("linux-gnu", R.version$os))
+      os <- "linux"
+  }
+  tolower(os)
+}
+
+os <- get_os()
 
 
-accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv")
+if(os == "osx") {accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv")
+} else { accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv")}
 
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
   library(doBy)
@@ -90,7 +114,8 @@ ggplot(acc, aes(x=Group, y=accuracy, colour=Stimulus, group=Stimulus, shape = St
 
 # ************ PLOT MEAN RTS BY BLOCK TYPE AND GROUP ************ 
 
-indiv_rts <- dplyr::select(read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv"), -X)
+if(os == "osx") {indiv_rts <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv")
+} else { indiv_rts <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv")}
 
 same <- dplyr::filter(indiv_rts, same_or_diff=="same")
 
@@ -114,13 +139,13 @@ ggplot(samec, aes(x=type, y=mean_rt, colour=Stimulus, group=Stimulus, shape = St
   scale_colour_hue(l = 50) +
   scale_x_discrete( limits=c("structured","random")) +
   theme_classic() +
-  theme(plot.title = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 30),
-        axis.title.x = element_text(size = 30),
-        axis.title.y = element_text(size = 30),
-        legend.title = element_text(size = 30),
-        legend.text = element_text(size = 30))
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
 
 
 
@@ -146,13 +171,13 @@ ggplot(diffc, aes(x=type, y=mean_rt, colour=Stimulus, group=Stimulus, shape = St
   scale_colour_hue(l = 50) +
   scale_x_discrete( limits=c("structured","random")) +
   theme_classic() +
-  theme(plot.title = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 30),
-        axis.title.x = element_text(size = 30),
-        axis.title.y = element_text(size = 30),
-        legend.title = element_text(size = 30),
-        legend.text = element_text(size = 30))
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
 
 
 # ************ PLOT MEAN RT SLOPE BY TASK AND GROUP ************ 
