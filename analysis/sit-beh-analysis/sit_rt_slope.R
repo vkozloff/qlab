@@ -1,7 +1,7 @@
 #  SIT Reaction Time Analysis
 #  Violet Kozloff
 #  Adapted from extraction files produced by An Nguyen
-#  Last modified Nov 15, 2020
+#  Last modified Dec 22, 2020
 #  This script extracts mean reaction time and reaction time slope for statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: relevant columns have been pre-selected through sit_cleaning.R
 #  NOTE: Excludes any trials where participant responded to less than 50% of the targets (or responded to a different image than the target)
@@ -190,13 +190,13 @@ list_part_id <- distinct(random_ll_targets, part_id)
 # There should be 32 participants
 nrow(list_part_id)
 
-# Each participant should have 288 lines — if not, identify the participant
+# Each participant should have 288 lines â if not, identify the participant
 random_ll %>% 
   group_by(part_id) %>%
   summarise(n = n()) %>%
   filter (n != 288)
 
-# Each participant should have 24 targets — if not, identify the participant
+# Each participant should have 24 targets â if not, identify the participant
 random_ll_targets %>% 
   group_by(part_id) %>%
   summarise(n = n()) %>%
