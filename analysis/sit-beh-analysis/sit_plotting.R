@@ -1,7 +1,7 @@
 #  SIT PLOTTING
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi and An Nguyen
-#  Last modified December 22nd, 2020
+#  Last modified December 23rd, 2020
 #  This script creates visualizations for accuracy and reaction time
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -110,6 +110,27 @@ ggplot(acc, aes(x=Group, y=accuracy, colour=Stimulus, group=Stimulus, shape = St
         legend.title = element_text(size = 30),
         legend.text = element_text(size = 30)) +
   ylim(0.50, 0.75)
+
+
+
+ggplot(acc, aes(x=Stimulus, y=accuracy, colour=Stimulus, shape = Stimulus)) +
+  geom_errorbar(aes(ymin=accuracy-se, ymax=accuracy+se), colour="black", width=.1, position=pd) +
+  geom_line(position=pd, aes(linetype = Stimulus)) +
+  geom_point(fill = "white", position=pd, size=5) +
+  facet_wrap(~Group) +
+  xlab("Stimulus") +
+  ylab("Accuracy") +
+  scale_colour_hue(l = 50) +
+  theme_classic() +
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        legend.position = "none") +
+  ylim(0.50, 0.75)
+
+
 
 
 # ************ PLOT MEAN RTS BY BLOCK TYPE AND GROUP ************ 
