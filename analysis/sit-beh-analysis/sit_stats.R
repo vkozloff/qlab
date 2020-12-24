@@ -1,7 +1,7 @@
 #  SIT STATISTICAL ANALYSIS
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi
-#  Last modified December 22nd, 2020
+#  Last modified December 23rd, 2020
 #  This script finds and analyzes measures of statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -642,7 +642,6 @@ t.test(svl$rt_slope, alternative="less", mu=0)
 # Full model
 rt_both.full <- lmerTest::lmer(rt ~ 1 + same_or_diff * domain * type + (1 + domain * type | part_id), data = rt_data,  REML = FALSE)
 summary(rt_both.full)
-
 tab_model(rt_both.full, show.se = TRUE)
 
 # For same group only
@@ -654,10 +653,26 @@ tab_model(rt_same.full, show.se = TRUE)
 
 # For different group only
 
-# Maximal model, gives singular fit
+# Maximal model
 rt_diff.full <- lmerTest::lmer(rt ~ 1 + domain * type + (1 + domain * type | part_id), data = filter(rt_data, same_or_diff == "different"),  REML = FALSE)
 summary(rt_diff.full) 
 tab_model(rt_diff.full, show.se = TRUE)
+
+#ZQ suggestion to try fixed effects interaction including target index 
+rt_both_test.mod <- lmer(rt ~ 1 + domain * type * targ_index * same_or_diff +
+                            (1 + domain * type | part_id), 
+                         data = indiv_rt_data,
+                         REML = FALSE)
+
+print(rt_both_test.mod, correlation = TRUE)
+tab_model(rt_both_test.mod)
+
+rt_different_test.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
+                                       (1 + domain * type | part_id), 
+                                    data = filter(indiv_rt_data, same_or_diff == 1),
+                                    REML = FALSE)
+summary(rt_different_test.mod)
+tab_model(rt_different_test.mod)
 
 
 # Try with by-target slopes for block (all have fit problems)
