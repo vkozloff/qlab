@@ -14,7 +14,6 @@
 # install.packages("cowplot")
 # install.packages("emmeans")
 # install.packages("doBy")
-library("afex")     
 require("ggplot2")  
 library("cowplot")
 library("doBy")
@@ -143,6 +142,138 @@ same <- dplyr::filter(indiv_rts, same_or_diff=="same")
 same$Stimulus<- ifelse(same$domain=="linguistic", "Letter", "Image")
 
 samec <- summarySE(same, measurevar="mean_rt", groupvars=c("Stimulus", "type"))
+
+
+# Also plot by trial index
+
+if(os == "osx") {indiv_rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+} else { indiv_rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")}
+
+
+same_ling <- dplyr::filter(indiv_rt_data, domain=="linguistic", same_or_diff == "same")
+same_ling_plot<-dplyr::summarise(dplyr::group_by(same_ling,type,targ_index), n = dplyr::n(),
+                                 mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = same_ling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/same_ling.png")
+
+same_nonling <- dplyr::filter(indiv_rt_data, domain=="non-linguistic", same_or_diff == "same")
+same_nonling_plot<-dplyr::summarise(dplyr::group_by(same_nonling,type,targ_index), n = dplyr::n(),
+                                         mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = same_nonling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/same_nonling.png")
+
+different_ling <- dplyr::filter(indiv_rt_data, domain=="linguistic", same_or_diff == "different")
+different_ling_plot<-dplyr::summarise(dplyr::group_by(different_ling,type,targ_index), n = dplyr::n(),
+                                 mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = different_ling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/different_ling.png")
+
+different_nonling <- dplyr::filter(indiv_rt_data, domain=="non-linguistic", same_or_diff == "different")
+different_nonling_plot<-dplyr::summarise(dplyr::group_by(different_nonling,type,targ_index), n = dplyr::n(),
+                                      mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = different_nonling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/different_nonling.png")
+
+
+
+both_ling <- dplyr::filter(indiv_rt_data, domain=="linguistic")
+both_ling_plot<-dplyr::summarise(dplyr::group_by(both_ling,type,targ_index), n = dplyr::n(),
+                                 mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = both_ling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/both_ling.png")
+
+
+
+both_nonling <- dplyr::filter(indiv_rt_data, domain=="non-linguistic")
+both_nonling_plot<-dplyr::summarise(dplyr::group_by(both_nonling,type,targ_index), n = dplyr::n(),
+                                         mean=mean(rt,na.rm = T), sd=sd(rt,na.rm = T),se = sd/sqrt(n))
+ggplot(data = both_nonling_plot, aes(x=targ_index, y=mean, color = type))+
+  geom_line() +geom_point()  +
+  scale_color_manual(values=c('red','blue'))+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se),
+                width=.1,  size=0.5)+
+  scale_x_continuous(breaks=seq(2,24,2))+
+  theme(
+    axis.title = element_text(family = "Trebuchet MS", size = 20),
+    legend.key.size = unit(1, "cm"),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15))  +
+  labs(x = "Trials", y = "Response Time (ms)") +
+  theme(panel.background = element_rect(fill = "white", colour = "grey50")) +
+  theme(axis.line = element_line(arrow = arrow(angle = 15, length = unit(.15,"inches"),type = "closed")))
+
+ggsave("/Volumes/data/projects/completed_projects/sit/analysis/figures/both_nonling.png")
+
 
 
 # set type 2 = random, type 1 = structured (line graph requires continuous variable)
