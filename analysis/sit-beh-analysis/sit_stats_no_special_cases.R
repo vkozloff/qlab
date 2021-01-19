@@ -1,7 +1,7 @@
 #  SIT STATISTICAL ANALYSIS
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi
-#  Last modified December 22nd, 2020
+#  Last modified January 14th, 2020
 #  This script finds and analyzes measures of statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -82,7 +82,7 @@ t.test(age~same_or_diff, data=matched_data)
 
 # *************************** ACCURACY ANALYSES *******************
 
-ifelse(os == "osx", indiv_accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long_no_sc.csv"), indiv_accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv"))
+ifelse(os == "osx", indiv_accuracies <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv"), indiv_accuracies <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_accuracy_long.csv"))
 
 # Separate data by task and group
 indiv_ll_accuracies <- dplyr::filter(indiv_accuracies, task =="ll")
@@ -129,7 +129,7 @@ vl_acc_corr
 lv_acc_corr <- cor.test(diff_acc_corr$lv, diff_acc_corr$score, alternative = "greater")
 lv_acc_corr
 
-ifelse(os == "osx", item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies_no_sc.csv"), item_accuracy_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/item_accuracies_no_sc.csv"))
+ifelse(os == "osx", item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv"), item_accuracy_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/item_accuracies_no_sc.csv"))
 
 # Dummy code group so that "same" is the reference level
 item_accuracy_data$group <- ifelse(item_accuracy_data$group == "same", 0, 1)
@@ -220,6 +220,76 @@ rt_different_full.mod <- lmerTest::lmer(rt ~ 1 + domain * type +
                             (1 + domain * type | part_id), 
                          data = filter(indiv_rt_data, same_or_diff == 1),
                          REML = FALSE) # does not converge
+
+
+# ZQ suggested models based on Zinzser collaboration
+rt_both.mod <- lmer(rt ~ 1 + domain * type * targ_index * same_or_diff +
+                       (1 + domain * type | part_id),
+                    data = indiv_rt_data,
+                    REML = FALSE)
+tab_model(rt_both.mod, show.se = TRUE)
+
+rt_same.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
+                                 (1 + domain * type | part_id),
+                              data = filter(indiv_rt_data, same_or_diff == 0),
+                              REML = FALSE)
+tab_model(rt_same.mod, show.se = TRUE)
+
+
+ranef_same_domain <- as.data.frame(ranef(rt_same.mod)) %>%
+   filter(term =="domain") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_same_domain$condval, ranef_same_domain$score)
+
+ranef_same_type <- as.data.frame(ranef(rt_same.mod)) %>%
+   filter(term =="type") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_same_type$condval, ranef_same_type$score)
+
+ranef_same_interaction <- as.data.frame(ranef(rt_same.mod)) %>%
+   filter(term =="domain:type") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+
+ranef_same_intercept <- as.data.frame(ranef(rt_same.mod)) %>%
+   filter(term =="(Intercept)") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_same_intercept$condval, ranef_same_intercept$score)
+
+
+rt_different.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
+                                      (1 + domain * type | part_id),
+                                   data = filter(indiv_rt_data, same_or_diff == 1),
+                                   REML = FALSE)
+tab_model(rt_different.mod, show.se = TRUE)
+
+ranef_different_domain <- as.data.frame(ranef(rt_different.mod)) %>%
+   filter(term =="domain") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_different_domain$condval, ranef_different_domain$score)
+
+ranef_different_type <- as.data.frame(ranef(rt_different.mod)) %>%
+   filter(term =="type") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_different_type$condval, ranef_different_type$score)
+
+ranef_different_interaction <- as.data.frame(ranef(rt_different.mod)) %>%
+   filter(term =="domain:type") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_different_interaction$condval, ranef_different_interaction$score)
+
+ranef_different_intercept <- as.data.frame(ranef(rt_different.mod)) %>%
+   filter(term =="(Intercept)") %>%
+   rename(part_id = grp) %>%
+   merge(picture_vocab, by = "part_id")
+cor.test(ranef_different_intercept$condval, ranef_different_intercept$score)
+
 
 
 # *************************** RT SLOPE ANALYSES *******************
