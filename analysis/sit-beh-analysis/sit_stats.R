@@ -1,7 +1,7 @@
 #  SIT STATISTICAL ANALYSIS
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi
-#  Last modified January 14th, 2020
+#  Last modified January 14th, 2021
 #  This script finds and analyzes measures of statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -17,6 +17,7 @@ if(!("car" %in% installed.packages())) {install.packages("car")}
 if(!("ez" %in% installed.packages())) {install.packages("ez")}
 if(!("afex" %in% installed.packages())) {install.packages("afex")}
 if(!("sjPlot" %in% installed.packages())) {install.packages("sjPlot")}
+if(!("arm" %in% installed.packages())) {install.packages("arm")}
 
 require("tidyverse")
 require ("lme4")
@@ -28,6 +29,7 @@ require ("ez")
 require("here")
 require("afex")
 require("sjPlot")
+require("arm") #Andrew Gelman
 
 rm(list=ls())
 
@@ -58,8 +60,8 @@ if(os == "osx") {chi_square_data <- read.csv("/Volumes/data/projects/completed_p
 if(os == "osx") {picture_vocab <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")
 } else { picture_vocab <- read.csv("Z:/projects/completed_projects/sit/analysis/data/clean/vocab_clean/vocab_clean.csv")}
 
-if(os == "osx") {rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts_no_sc.csv")
-} else { rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts_no_sc.csv")}
+if(os == "osx") {rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")
+} else { rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv")}
 
 # Subset only relevant data about the population
 matched_data <- chi_square_data %>% dplyr::select (part_id, age, sex, score, same_or_diff)
@@ -129,7 +131,7 @@ vl_acc_corr
 lv_acc_corr <- cor.test(diff_acc_corr$lv, diff_acc_corr$score, alternative = "greater")
 lv_acc_corr
 
-ifelse(os == "osx", item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv"), item_accuracy_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/item_accuracies_no_sc.csv"))
+ifelse(os == "osx", item_accuracy_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv"), item_accuracy_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/item_accuracies.csv"))
 
 # Dummy code group so that "same" is the reference level
 item_accuracy_data$group <- ifelse(item_accuracy_data$group == "same", 0, 1)
@@ -146,7 +148,7 @@ item_acc_full.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulu
 summary(item_acc_full.mod) # The full model converges, but gives a singular fit (no warning), which seems to come from the by-trial random effects, so try setting those correlations to 0
 
 item_acc.mod <- glmer (corr_resp ~ 1 + group * stimulus_type + (1 + stimulus_type | part_id)
-                            + (0 + group | trial) + (1|trial), family = "binomial", data = item_accuracy_data) # produces singular fit warning
+                       + (0 + group | trial) + (1|trial), family = "binomial", data = item_accuracy_data) # produces singular fit warning
 
 summary(item_acc.mod) # It looks like the singular fit comes from the correlations for by-participant random effects, so set this to 0
 
@@ -165,7 +167,7 @@ tab_model(item_acc.mod, show.se = TRUE)
 # Item-level glmer ("same" group only)
 # Maximal model
 item_acc_same_full.mod <- glmer (corr_resp ~ 1 + stimulus_type + (1 + stimulus_type | part_id) + (1 | trial), 
-                            family = "binomial", data = filter(item_accuracy_data, group == 0)) # This converges
+                                 family = "binomial", data = filter(item_accuracy_data, group == 0)) # This converges
 summary(item_acc_same_full.mod) # No singular fit
 sjPlot::tab_model(item_acc_same_full.mod, show.se = TRUE)
 
@@ -181,7 +183,7 @@ sjPlot::tab_model(item_acc_diff_full.mod, show.se = TRUE)
 
 # *************************** INDIVIDUAL RT ANALYSES *******************
 
-ifelse(os == "osx", indiv_rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts_no_sc.csv"), indiv_rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts_no_sc.csv"))
+ifelse(os == "osx", indiv_rt_data <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv"), indiv_rt_data <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/indiv_rts.csv"))
 
 test <- indiv_rt_data %>%
    group_by(part_id, type, domain, same_or_diff) %>%
@@ -191,8 +193,6 @@ test2 <- test %>%
    group_by(type, domain, same_or_diff) %>%
    summarise(participants = n(), mean_hits = mean(n_hits), mean_percentage = mean(n_hits)/24, sd_hits = sd (n_hits), sd_percentage = sd (n_hits)/24)
 
-
-
 # Dummy code group so that "same" is the reference level
 indiv_rt_data$same_or_diff <- ifelse(indiv_rt_data$same_or_diff == "same", 0, 1)
 # Dummy code stimlus type so that "image" is the reference level
@@ -201,25 +201,25 @@ indiv_rt_data$domain <- ifelse(indiv_rt_data$domain == "non-linguistic", 0, 1)
 indiv_rt_data$type <- ifelse(indiv_rt_data$type == "random", 0, 1)
 
 rt_both_full.mod <- lmer(rt ~ 1 + same_or_diff * domain * type +
-                       (1 + domain * type | part_id), 
-                    data = indiv_rt_data, REML = FALSE) # This converges
+                            (1 + domain * type | part_id), 
+                         data = indiv_rt_data, REML = FALSE) # This converges
 
 summary(rt_both_full.mod) # No singular fit!
-tab_model(rt_both_full.mod, show.se =TRUE)
 
 # Same group only
 rt_same_full.mod <- lmerTest::lmer(rt ~ 1 + domain * type +
-                       (1 + domain * type | part_id), 
-                    data = filter(indiv_rt_data, same_or_diff == 0),
-                    REML = FALSE) # converges
+                                      (1 + domain * type | part_id), 
+                                   data = filter(indiv_rt_data, same_or_diff == 0),
+                                   REML = FALSE) # converges
 summary(rt_same_full.mod) # no singularity
 tab_model(rt_same_full.mod, show.se = TRUE)
 
 # Different group only
 rt_different_full.mod <- lmerTest::lmer(rt ~ 1 + domain * type +
-                            (1 + domain * type | part_id), 
-                         data = filter(indiv_rt_data, same_or_diff == 1),
-                         REML = FALSE) # does not converge
+                                           (1 + domain * type | part_id), 
+                                        data = filter(indiv_rt_data, same_or_diff == 1),
+                                        REML = FALSE) # converges
+summary(rt_different_full.mod) # No singularity
 
 
 # ZQ suggested models based on Zinzser collaboration
@@ -233,8 +233,8 @@ rt_same.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
                                  (1 + domain * type | part_id),
                               data = filter(indiv_rt_data, same_or_diff == 0),
                               REML = FALSE)
+summary(rt_same.mod)
 tab_model(rt_same.mod, show.se = TRUE)
-
 
 ranef_same_domain <- as.data.frame(ranef(rt_same.mod)) %>%
    filter(term =="domain") %>%
@@ -266,6 +266,12 @@ rt_different.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
                                    REML = FALSE)
 tab_model(rt_different.mod, show.se = TRUE)
 
+plot_model(rt_different.mod, type = "pred", terms = c("targ_index", "type"))
+
+plot_model(rt_same.mod, type = "pred", terms = c("targ_index", "type"))
+
+
+
 ranef_different_domain <- as.data.frame(ranef(rt_different.mod)) %>%
    filter(term =="domain") %>%
    rename(part_id = grp) %>%
@@ -292,37 +298,38 @@ cor.test(ranef_different_intercept$condval, ranef_different_intercept$score)
 
 
 
+
 # *************************** RT SLOPE ANALYSES *******************
 
-ifelse(os=="osx", indiv_rt_slope <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope_no_sc.csv"),
-indiv_rt_slope <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope_no_sc.csv"))
+ifelse(os=="osx", indiv_rt_slope <- read.csv("/Volumes/data/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv"),
+       indiv_rt_slope <- read.csv("Z:/projects/completed_projects/sit/analysis/summaries/sit_indiv_rt_slope.csv"))
 
 
 # Model to test effects of type (random/ structured), test phase and group (same/ different) on RT Slope----------------------
 
 slope_both_full.mod <- lm (rt_slope ~ same_or_diff * domain * type, 
-                              data = indiv_rt_slope)
+                           data = indiv_rt_slope)
 
 summary(slope_both_full.mod)
 
-sjPlot::tab_model(slope_both_full.mod)
+sjPlot::tab_model(slope_both_full.mod, show.se = TRUE)
 
 slope_same_full.mod <- lm (rt_slope ~ domain * type, 
                            data = filter(indiv_rt_slope, same_or_diff == "same"))
 
 summary(slope_same_full.mod)
-sjPlot::tab_model(slope_same_full.mod)
+sjPlot::tab_model(slope_same_full.mod, show.se = TRUE)
 
 
 slope_different_full.mod <- lm (rt_slope ~ domain * type, 
-                           data = filter(indiv_rt_slope, same_or_diff == "different"))
+                                data = filter(indiv_rt_slope, same_or_diff == "different"))
 
 summary(slope_different_full.mod)
-tab_model(slope_different_full.mod)
+tab_model(slope_different_full.mod, show.se = TRUE)
 
 # *************************** SUMMARIZE RT SLOPE *******************
 
- # Find mean RT slope for each group and task ------------------------------------------------------------------------------------
+# Find mean RT slope for each group and task ------------------------------------------------------------------------------------
 
 mean(filter(indiv_rt_slope, same_or_diff=="different")$rt_slope)
 mean(filter(indiv_rt_slope, same_or_diff=="same")$rt_slope)
@@ -331,15 +338,15 @@ mean(filter(indiv_rt_slope, type=="structured")$rt_slope)
 
 
 indiv_rt_slope %>%
-  group_by(task, domain, type) %>%
-  summarise(mean_rt_slope = mean(rt_slope), mean_rt_mean = paste0(round(mean(mean_rt), digits = 2)," (",round(sd(mean_rt), digits = 2),")"), n = n())
-
-View(indiv_rt_slope %>%
    group_by(task, domain, type) %>%
-   summarise(mean_rt_slope = mean(rt_slope), mean_rt_mean = paste0(round(mean(mean_rt), digits = 2)," (",round(sd(mean_rt), digits = 2),")"), n = n()))
+   summarise(mean_rt_slope = mean(rt_slope), mean_rt_mean = paste0(round(mean(mean_rt), digits = 2)," (",round(sd(mean_rt), digits = 2),")"), n = n())
+
+indiv_rt_slope %>%
+   group_by(task, domain, type) %>%
+   summarise(mean_rt_slope = mean(rt_slope), mean_rt_mean = paste0(round(mean(mean_rt), digits = 2)," (",round(sd(mean_rt), digits = 2),")"), n = n())
 
 # *************************** CORRELATIONS FOR RT SLOPE/ MEAN RT **********************************
- 
+
 
 # RT Slope Correlation matrices-------------------------------------------------------------------------------------------------------------------------------------
 
@@ -386,15 +393,12 @@ same_vsl_diffscore_corr
 same_lsl_diffscore_corr <- cor.test(same_slope_corr$lsl_diffscore, same_slope_corr$score, alternative = "less")
 same_lsl_diffscore_corr
 
-
-
 # Check for any correlation between RT slope diff and accuracy
 
 slope_acc <- full_join (select(slope_corr_data, part_id, vsl_diffscore, lsl_diffscore, score), select (acc_corr_data, part_id, lsl, vsl), by ="part_id") %>%
    rename ("lsl_acc" = "lsl") %>%
    rename ("vsl_acc" = "vsl") %>%
    rename ("vocab" = "score") 
-
 
 cor.test (slope_acc$lsl_diffscore, slope_acc$lsl_acc)
 cor.test (slope_acc$vsl_diffscore, slope_acc$vsl_acc)
@@ -494,7 +498,7 @@ same_lsl_diffscore_corr
 
 
 # RT Slope Correlation matrices-------------------------------------------------------------------------------------------------------------------------------------
- 
+
 # Extract relevant data from indiv_rt_slope and picture_vocab
 slope_corr_data <- reshape::cast(indiv_rt_slope, part_id ~ task*type, mean, value = 'rt_slope')
 slope_corr_data <- merge(slope_corr_data, picture_vocab, by = "part_id", all=TRUE)
@@ -551,48 +555,48 @@ cor.test(filter(rt_slope_diff, same_or_diff == "same")$`non-linguistic`,filter(r
 
 
 
-# # RT slope difference
-# rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="diff")
-# rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
-#  
-# # Test the correlation between the same condition's difference scores and vocabulary 
-# rt_slope_diff_same = subset(rt_slope_diff,same_or_diff=="same")
-# rt_slope_diff_same_complete = rt_slope_diff_same[complete.cases(rt_slope_diff_same),]
-# cor.test(rt_slope_diff_same_complete$linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson")
-# 
-# colnames(rt_slope_diff_same_complete)[5] <- "non_linguistic"
-# cor.test(rt_slope_diff_same_complete$non_linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson") 
-# 
-# # Test the correlation between the different condition's difference scores and vocabulary 
-# rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="different")
-# rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
-# cor.test(rt_slope_diff_diff_complete$linguistic,rt_slope_diff_diff_complete$score,alternative = "less", method="pearson")
-# 
-# 
-# vocab_corr<- rt_slope_diff_diff_complete
-# vocab_corr <- dplyr::rename(vocab_corr, image = `non-linguistic`)
-# vocab_corr <- dplyr::rename(vocab_corr, letter = linguistic)
-# vocab_corr <- dplyr::rename(vocab_corr, group = same_or_diff)
-# vocab_corr <- melt(data = data.frame(vocab_corr), id.vars = c("part_id", "group", "score"), measure.vars = c("image", "letter"))
-# vocab_corr <- dplyr::rename(vocab_corr, rt_slope_diff = value)
-# vocab_corr <- dplyr::rename(vocab_corr, Stimulus = variable)
+# RT slope difference
+rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="diff")
+rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
+
+# Test the correlation between the same condition's difference scores and vocabulary 
+rt_slope_diff_same = subset(rt_slope_diff,same_or_diff=="same")
+rt_slope_diff_same_complete = rt_slope_diff_same[complete.cases(rt_slope_diff_same),]
+cor.test(rt_slope_diff_same_complete$linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson")
+
+colnames(rt_slope_diff_same_complete)[5] <- "non_linguistic"
+cor.test(rt_slope_diff_same_complete$non_linguistic,rt_slope_diff_same_complete$score,alternative ="less",method="pearson") 
+
+# Test the correlation between the different condition's difference scores and vocabulary 
+rt_slope_diff_diff = subset(rt_slope_diff,same_or_diff=="different")
+rt_slope_diff_diff_complete = rt_slope_diff_diff[complete.cases(rt_slope_diff_diff),]
+cor.test(rt_slope_diff_diff_complete$linguistic,rt_slope_diff_diff_complete$score,alternative = "less", method="pearson")
+
+
+vocab_corr<- rt_slope_diff_diff_complete
+vocab_corr <- dplyr::rename(vocab_corr, image = `non-linguistic`)
+vocab_corr <- dplyr::rename(vocab_corr, letter = linguistic)
+vocab_corr <- dplyr::rename(vocab_corr, group = same_or_diff)
+vocab_corr <- melt(data = data.frame(vocab_corr), id.vars = c("part_id", "group", "score"), measure.vars = c("image", "letter"))
+vocab_corr <- dplyr::rename(vocab_corr, rt_slope_diff = value)
+vocab_corr <- dplyr::rename(vocab_corr, Stimulus = variable)
 
 # Plot vocabulary correlation
 ggplot(data=vocab_corr, aes(x=rt_slope_diff,y=score,color=Stimulus, shape=Stimulus)) + 
-   geom_point(size=10) + 
+   geom_point(size=3) + 
    geom_smooth(method=lm, se=FALSE, aes(linetype = Stimulus)) + 
    ylab(label="Vocabulary Score") +
    theme(panel.border = element_rect(colour='black', fill=NA),  panel.background = element_blank()) + 
    xlab(label="Difference in RT Slope Between \nStructured and Random Condition") +
    scale_colour_hue(l = 50) +
    theme_classic() +
-   theme(plot.title = element_text(size = 30),
-         axis.text.x = element_text(size = 30),
-         axis.text.y = element_text(size = 30),
-         axis.title.x = element_text(size = 30),
-         axis.title.y = element_text(size = 30),
-         legend.title = element_text(size = 30),
-         legend.text = element_text(size = 30))
+   theme(plot.title = element_text(size = 12),
+         axis.text.x = element_text(size = 12),
+         axis.text.y = element_text(size = 12),
+         axis.title.x = element_text(size = 12),
+         axis.title.y = element_text(size = 12),
+         legend.title = element_text(size = 12),
+         legend.text = element_text(size = 12))
 
 
 colnames(rt_slope_diff_diff_complete)[5]<- "non_linguistic"
@@ -609,7 +613,7 @@ test_diff[,"non_linguistic_same"] <- NA
 test<-(rbind(test_same,test_diff))
 test[is.na(test)] <- 0
 names(test)<-gsub("_", " ", names(test))
- 
+
 test$part_id <- NULL
 rt_slope_correlations <- cor(test, use="pairwise.complete.obs")
 
@@ -634,16 +638,16 @@ all_diff <- mean_rt_data[ which(!is.na(mean_rt_data$lv>0)), ]
 all_diff$same_or_diff <- ("different")
 mean_rt_data <- rbind(all_same, all_diff)
 mean_rt_data <- mean_rt_data[ which(mean_rt_data$score>0), ]
- 
+
 # Separate mean_rt_data into groups by same/ different
 same_corr <- mean_rt_data[ which(!is.na(mean_rt_data$ll)), ]
 same_corr <- same_corr[, c(2, 5, 6)]
 diff_corr <- mean_rt_data[ which(!is.na(mean_rt_data$lv)), ]
 diff_corr <- diff_corr[, c(3, 4, 6)]
- 
+
 # Create correlation matrices for different condition
 diff <- cor(diff_corr, method = c("pearson"),use="pairwise.complete.obs")
- 
+
 # Test p-values of correlation matrices for different condition
 lv_corr<-cor.test(diff_corr$lv,diff_corr$score)
 lv_corr
@@ -653,11 +657,11 @@ vl_corr
 
 # Create correlation matrices for same condition
 same <- cor(same_corr, method = c("pearson"),use="pairwise.complete.obs")
- 
+
 # Test p-values of correlation matrices for different condition
 ll_corr<-cor.test(same_corr$ll, same_corr$score)
 ll_corr
- 
+
 vv_corr<-cor.test(same_corr$vv, same_corr$score)
 vv_corr
 
@@ -676,7 +680,7 @@ rt_diff_diff = subset(rt_diff,same_or_diff=="different")
 cor.test(rt_diff_diff$linguistic,rt_diff_diff$score, alternative = "greater", method="pearson")
 cor.test(rt_diff_diff$non_linguistic,rt_diff_diff$score, alternative = "less", method="pearson")
 
- 
+
 # #  ************* SEE WHETHER RT slope is below zero: T-TESTS *************
 
 sll <- filter (indiv_rt_slope, type =="structured" &  task == "ll")
@@ -711,7 +715,6 @@ t.test(svl$rt_slope, alternative="less", mu=0)
 # Full model
 rt_both.full <- lmerTest::lmer(rt ~ 1 + same_or_diff * domain * type + (1 + domain * type | part_id), data = rt_data,  REML = FALSE)
 summary(rt_both.full)
-
 tab_model(rt_both.full, show.se = TRUE)
 
 # For same group only
@@ -723,10 +726,26 @@ tab_model(rt_same.full, show.se = TRUE)
 
 # For different group only
 
-# Maximal model, gives singular fit
+# Maximal model
 rt_diff.full <- lmerTest::lmer(rt ~ 1 + domain * type + (1 + domain * type | part_id), data = filter(rt_data, same_or_diff == "different"),  REML = FALSE)
 summary(rt_diff.full) 
 tab_model(rt_diff.full, show.se = TRUE)
+
+#ZQ suggestion to try fixed effects interaction including target index 
+rt_both_test.mod <- lmer(rt ~ 1 + domain * type * targ_index * same_or_diff +
+                            (1 + domain * type | part_id), 
+                         data = indiv_rt_data,
+                         REML = FALSE)
+
+print(rt_both_test.mod, correlation = TRUE)
+tab_model(rt_both_test.mod)
+
+rt_different_test.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
+                                           (1 + domain * type | part_id), 
+                                        data = filter(indiv_rt_data, same_or_diff == 1),
+                                        REML = FALSE)
+summary(rt_different_test.mod)
+tab_model(rt_different_test.mod)
 
 
 # Try with by-target slopes for block (all have fit problems)
@@ -749,9 +768,4 @@ tab_model(rt_diff.full, show.se = TRUE)
 #                                    REML = FALSE) # does not converge
 
 
-# ZQ suggested model based on Zinzser collaboration (does not converge)
-# lmer(rt~targ_index*domain*type 
-# + (1+type|target) 
-# + (1+targ_index*domain*type|part_id), 
-#     data = filter(indiv_rt_data, same_or_diff == 1),
-#     REML = FALSE) 
+
