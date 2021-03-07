@@ -1,7 +1,7 @@
 #  SIT STATISTICAL ANALYSIS
 #  Violet Kozloff
 #  Created with support from Zhenghan Qi
-#  Last modified January 14th, 2021
+#  Last modified March 7th, 2021
 #  This script finds and analyzes measures of statistical learning tasks involving structured and random triplets of letters and images
 #  NOTE: Accuracies have been previously calculated in sit_accuracy.R
 #  NOTE: Reaction time means and slopes have been previously calculated in sit_rt_slope.R 
@@ -200,35 +200,37 @@ indiv_rt_data$domain <- ifelse(indiv_rt_data$domain == "non-linguistic", 0, 1)
 # Dummy code block type so that "random" is the reference level
 indiv_rt_data$type <- ifelse(indiv_rt_data$type == "random", 0, 1)
 
-rt_both_full.mod <- lmer(rt ~ 1 + same_or_diff * domain * type +
-                            (1 + domain * type | part_id), 
-                         data = indiv_rt_data, REML = FALSE) # This converges
-
-summary(rt_both_full.mod) # No singular fit!
-
-# Same group only
-rt_same_full.mod <- lmerTest::lmer(rt ~ 1 + domain * type +
-                                      (1 + domain * type | part_id), 
-                                   data = filter(indiv_rt_data, same_or_diff == 0),
-                                   REML = FALSE) # converges
-summary(rt_same_full.mod) # no singularity
-tab_model(rt_same_full.mod, show.se = TRUE)
-
-# Different group only
-rt_different_full.mod <- lmerTest::lmer(rt ~ 1 + domain * type +
-                                           (1 + domain * type | part_id), 
-                                        data = filter(indiv_rt_data, same_or_diff == 1),
-                                        REML = FALSE) # converges
-summary(rt_different_full.mod) # No singularity
-
-
-# ZQ suggested models based on Zinzser collaboration
+# Both groups
 rt_both.mod <- lmer(rt ~ 1 + domain * type * targ_index * same_or_diff +
                        (1 + domain * type | part_id),
                     data = indiv_rt_data,
                     REML = FALSE)
 tab_model(rt_both.mod, show.se = TRUE)
 
+# Run model for both again, without 4-way interaction
+rt_both.mod_reduced <- lmer(rt ~ 1 + (domain * type * targ_index) + (domain * type * same_or_diff) + 
+                               (domain * targ_index * same_or_diff) + (type * targ_index * same_or_diff) +
+                       (1 + domain * type | part_id),
+                    data = indiv_rt_data,
+                    REML = FALSE)
+tab_model(rt_both.mod_reduced, show.se = TRUE)
+
+# Combined groups by domain
+#images
+rt_both_image.mod_reduced <- lmer(rt ~ 1 + type * targ_index * same_or_diff +
+                               (1 + type | part_id),
+                            data = filter(indiv_rt_data, domain == 0),
+                            REML = FALSE)
+tab_model(rt_both_image.mod_reduced, show.se = TRUE)
+#letters
+rt_both_letter.mod_reduced <- lmer(rt ~ 1 + type * targ_index * same_or_diff +
+                                     (1 + type | part_id),
+                                  data = filter(indiv_rt_data, domain == 1),
+                                  REML = FALSE)
+tab_model(rt_both_letter.mod_reduced, show.se = TRUE)
+
+
+# Same group
 rt_same.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
                                  (1 + domain * type | part_id),
                               data = filter(indiv_rt_data, same_or_diff == 0),
@@ -236,6 +238,22 @@ rt_same.mod <- lmerTest::lmer(rt ~ 1 + domain * type * targ_index +
 summary(rt_same.mod)
 tab_model(rt_same.mod, show.se = TRUE)
 
+# post hoc
+rt_same_image.mod <- lmerTest::lmer(rt ~ 1 + type * targ_index +
+                                 (1 + type | part_id),
+                              data = filter(indiv_rt_data, same_or_diff == 0, domain == 0),
+                              REML = FALSE)
+tab_model(rt_same_image.mod, show.se = TRUE, show.std = TRUE)
+
+rt_same_letter.mod <- lmerTest::lmer(rt ~ 1 + type * targ_index +
+                                       (1 + type | part_id),
+                                    data = filter(indiv_rt_data, same_or_diff == 0, domain == 1),
+                                    REML = FALSE)
+tab_model(rt_same_letter.mod, show.std = TRUE, show.se = TRUE)
+
+
+
+# correlations of random effects with vocab?
 ranef_same_domain <- as.data.frame(ranef(rt_same.mod)) %>%
    filter(term =="domain") %>%
    rename(part_id = grp) %>%
@@ -269,8 +287,6 @@ tab_model(rt_different.mod, show.se = TRUE)
 plot_model(rt_different.mod, type = "pred", terms = c("targ_index", "type"))
 
 plot_model(rt_same.mod, type = "pred", terms = c("targ_index", "type"))
-
-
 
 ranef_different_domain <- as.data.frame(ranef(rt_different.mod)) %>%
    filter(term =="domain") %>%
